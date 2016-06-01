@@ -104,7 +104,7 @@ sub delete {
     return $self->delete_all if
         $self->eav->db_driver_name eq 'SQLite';
 
-    if ($eav->relationship_cascade_delete) {
+    unless ($eav->database_cascade_delete) {
 
         # delete links by relationship id
         my @ids = map { $_->{id} } $type->relationships;
@@ -116,9 +116,6 @@ sub delete {
             },
             { join => { $entities_table->name =>  [{ 'me.left_entity_id' => 'their.id' }, { 'me.right_entity_id' => 'their.id' }] } }
         );
-    }
-
-    if ($eav->attribute_cascade_delete) {
 
         # delete attributes:
         # - group attrs by data type so only one DELETE command is sent per data type

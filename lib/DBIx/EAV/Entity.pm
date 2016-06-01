@@ -395,18 +395,17 @@ sub delete {
         }
     }
 
-    # delete relationship links
-    $eav->table('entity_relationships')->delete([
-        { left_entity_id  => $self->id },
-        { right_entity_id => $self->id }
-    ]) if $eav->relationship_cascade_delete;
+    unless ($eav->database_cascade_delete) {
 
-    # delete attributes
-    if ($eav->attribute_cascade_delete) {
+        # delete relationship links
+        $eav->table('entity_relationships')->delete([
+            { left_entity_id  => $self->id },
+            { right_entity_id => $self->id }
+        ]);
 
-
+        # delete attributes
         my %data_types = map { $_->{data_type} => 1 }
-                         $type->attributes( no_static => 1 );
+        $type->attributes( no_static => 1 );
 
         foreach my $data_type (keys %data_types) {
             $eav->table('value_'.$data_type)->delete({ entity_id => $self->id });

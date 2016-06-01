@@ -22,8 +22,7 @@ our $VERSION = "0.01";
 has 'dbh', is => 'ro', required => 1;
 
 # optional
-has 'relationship_cascade_delete', is => 'ro', default => 1;
-has 'attribute_cascade_delete', is => 'ro', default => 1;
+has 'database_cascade_delete', is => 'ro', default => 0;
 has 'table_prefix', is => 'ro', default => 'eav_';
 has 'tenant_id', is => 'ro';
 has 'data_types', is => 'ro', default => sub { [qw/ int decimal varchar text datetime boolean /] };
@@ -612,7 +611,7 @@ the L<entity_relationships|DBIx::EAV::Schema/entity_relationships> table. If an
 entity has attributes of 4 data types, and has any relationship defined, a total
 of 6 (six!!) C<DELETE> commands will be needed to delete a single entity. Four
 to the value tables, one for the entity_relationships and one for the actual
-entitis table).
+entities table).
 
 Those extra C<DELETE> commands can be avoided by using database-level
 C<ON DELETE CASCADE> for the references from the B<values> and

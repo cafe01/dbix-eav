@@ -265,7 +265,7 @@ the [entity\_relationships](https://metacpan.org/pod/DBIx::EAV::Schema#entity_re
 entity has attributes of 4 data types, and has any relationship defined, a total
 of 6 (six!!) `DELETE` commands will be needed to delete a single entity. Four
 to the value tables, one for the entity\_relationships and one for the actual
-entitis table).
+entities table).
 
 Those extra `DELETE` commands can be avoided by using database-level
 `ON DELETE CASCADE` for the references from the **values** and
