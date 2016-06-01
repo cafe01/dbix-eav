@@ -411,6 +411,13 @@ DBIx::EAV - Entity-Attribute-Value data modeling (aka 'open schema') over DBI
 An implementation of Entity-Attribute-Value data modeling with support for
 entity relationships and multi-tenancy.
 
+=head1 ALPHA STAGE
+
+This project is in its infancy, and the main purpose of this stage is to let
+other developers try it, and help identify any major design flaw before we can
+stabilize the API. One exception is the ResultSet whose API (and docs :]) I've
+borrowed from L<DBIx::Class>, so its (API is) already stable.
+
 =head1 WHAT'S EAV?
 
 EAV is a data model where instead of representing each entity using a physical
@@ -437,28 +444,70 @@ and still be able to do filtering/sorting of results based of product attributes
 For example, the entity 'HardDrive' would have atrributes 'capacity' and 'rpm',
 while entity 'Monitor' would have attributes 'resolution' and 'contrast_ratio'.
 
-=head2 When you need frequent changes to your schema
+=head2 To abstract the physical database layer
 
 Many SaaS platforms use EAV modeling to offer database services to its custormers,
 without exposing the physical database system.
 
-=head1 CONCEPTS
+=head2 When you need frequent changes to your schema
 
-=head2 PHYSICAL SCHEMA
+An open-schema data model can be useful for app prototyping.
 
-=head2 EAV SCHEMA
+=head1 DBIx::EAV CONCEPTS
 
-=head2 ENTITY TYPE
+=head2 EntityType
 
-=head2 ENTITY
+An L<EntityType|DBIx::EAV::EntityType> is the blueprint of an entity. Like a
+Class in OOP. Each type has  a unique name, one or more attributes and zero or
+more relationships. See L<DBIx::EAV::EntityType>.
 
-=head2 COLLECTION
+=head2 Entity
 
-=head2 CURSOR
+An actual entity record (of some type) that has its own id and attribute values.
+See L<DBIx::EAV::Entity>.
 
-=head1 METHODS
+=head2 Attribute
+
+Attributes are analogous to columns in traditional database modeling. Its the
+actual named properties that describes an entity type. Every attribute has a
+unique name and a data type. Unlike traditional table columns, adding/removing
+attributes to an existing entity type is very easy and cheap.
+
+=head2 Value
+
+The actual attribute data stored in one of the value tables. There is one value
+table for each data type.
+See L<data_types>, L<DBIx::EAV::Schema>.
+
+=head2 Physical Schema
+
+This is the actual database tables used by the EAV system. Its represented by
+L<DBIx::EAV::Schema>.
+
+=head2 EAV Schema
+
+Its the total set of Entity Types registered on the system, which form the
+actual application business model.
+See L<register_schema>.
+
+=head2 ResultSet
+
+Concept borrowed from L<DBIx::Class>, a ResultSet represents a query used for
+fetching a set of entities of a type, as well as other CRUD operations on
+multiple entities.
+
+=head2 Cursor
+
+A Cursor is used internally by the ResultSet to prepare, execute and traverse
+through SELECT queries.
+
+=head1 CONSTRUCTORS
 
 =head2 new
+
+=head2 connect
+
+=head1 METHODS
 
 =head2 register_schema
 
@@ -491,13 +540,26 @@ Returns a new L<resultset|DBIx::EAV::ResultSet> instance for type C<$type>.
 
 =head2 type
 
-    my $types = $eav->type('Artist');
+=over
 
-Returns the L<DBIx::EAV::EntityType> instance for type $name. Dies if type is not installed.
+=item Arguments: $name
+
+=back
+
+Returns the L<DBIx::EAV::EntityType> instance for type C<$name>. Dies if type
+is not installed.
+
+    my $types = $eav->type('Artist');
 
 =head2 has_type
 
-Returns true if type $name is installed.
+=over
+
+=item Arguments: $name
+
+=back
+
+Returns true if L<entity type|DBIx::EAV::EntityType> C<$name> is installed.
 
 =head2 schema
 
@@ -505,28 +567,59 @@ Returns the L<DBIx::EAV::Schema> instance representing the physical database sch
 
 =head2 table
 
+Shortcut for C<< ->schema->table >>.
 
-=head1 ENTITY DEFINITION
+=head2 data_types
 
-An entity definition is in the form of EntityName => \%definition,
-where the possible keys for %definition are:
+Returns an arrayref of data types known to the system. See L<new>.
+
+=head2 has_data_type
 
 =over
 
-=item attributes
-
-=item has_one
-
-=item has_many
-
-=item many_to_many
+=item Arguments: $name
 
 =back
 
+Returns true if the data type C<$name> exists. See L<data_types>.
 
-=head1 CASCASDE DELETE
+=head2 db_driver_name
 
-=head1 QUERY OPTIONS
+Shortcut for C<< $self->dbh->{Driver}{Name} >>.
+
+=head2 dbh_do
+
+=over
+
+=item Arguments: $stmt, \@bind?
+
+=item Return Values: ($rv, $sth)
+
+Prepares C<$stmt> and executes with the optional C<\@bind> values. Returns the
+return value from execute C<$rv> and the actual statement handle C<$sth> object.
+
+Set environment variable C<DBIX_EAV_TRACE> to 1 to get statements printed to
+C<STDERR>.
+
+=back
+
+=head1 CASCADE DELETE
+
+Since a single L<entity|DBIx::EAV::Entity>'s data is spread over several value
+tables, we can't just delete the entity in a single SQL C<DELETE> command.
+We must first send a C<DELETE> for each of those value tables, and one more for
+the L<entity_relationships|DBIx::EAV::Schema/entity_relationships> table. If an
+entity has attributes of 4 data types, and has any relationship defined, a total
+of 6 (six!!) C<DELETE> commands will be needed to delete a single entity. Four
+to the value tables, one for the entity_relationships and one for the actual
+entitis table).
+
+Those extra C<DELETE> commands can be avoided by using database-level
+C<ON DELETE CASCADE> for the references from the B<values> and
+B<entity_relationships> tables to the B<entities> table.
+
+If those contraints are in place, set L<database_cascade_delete|new> to C<1> and
+those extra C<DELETE> commands will not be sent.
 
 =head1 LICENSE
 
