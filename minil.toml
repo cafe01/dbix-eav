@@ -1,0 +1,4 @@
+name = "DBIx-EAV"
+# badges = ["travis"]
+module_maker="ModuleBuildTiny"
+

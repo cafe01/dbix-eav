@@ -1,0 +1,75 @@
+{
+   "abstract" : "Entity-Attribute-Value data modeling (aka 'open schema') over DBI",
+   "author" : [
+      "Carlos Fernando Avila Gratz <cafe@kreato.com.br>"
+   ],
+   "dynamic_config" : 0,
+   "generated_by" : "Minilla/v3.0.1, CPAN::Meta::Converter version 2.150001",
+   "license" : [
+      "perl_5"
+   ],
+   "meta-spec" : {
+      "url" : "http://search.cpan.org/perldoc?CPAN::Meta::Spec",
+      "version" : "2"
+   },
+   "name" : "DBIx-EAV",
+   "no_index" : {
+      "directory" : [
+         "t",
+         "xt",
+         "inc",
+         "share",
+         "eg",
+         "examples",
+         "author",
+         "builder"
+      ]
+   },
+   "prereqs" : {
+      "configure" : {
+         "requires" : {
+            "Module::Build::Tiny" : "0.035"
+         }
+      },
+      "develop" : {
+         "requires" : {
+            "Test::CPAN::Meta" : "0",
+            "Test::MinimumVersion::Fast" : "0.04",
+            "Test::PAUSE::Permissions" : "0.04",
+            "Test::Pod" : "1.41",
+            "Test::Spellunker" : "v0.2.7"
+         }
+      },
+      "runtime" : {
+         "requires" : {
+            "DBI" : "0",
+            "Lingua::EN::Inflect" : "1.899",
+            "Moo" : "0",
+            "SQL::Abstract" : "0",
+            "Scalar::Util" : "0",
+            "perl" : "5.008001",
+            "strictures" : "0"
+         }
+      },
+      "test" : {
+         "requires" : {
+            "DBD::SQLite" : "1.50",
+            "Test::More" : "0.98",
+            "YAML" : "1.15"
+         }
+      }
+   },
+   "release_status" : "unstable",
+   "resources" : {
+      "bugtracker" : {
+         "web" : "https://github.com/cafe01/dbix-eav/issues"
+      },
+      "homepage" : "https://github.com/cafe01/dbix-eav",
+      "repository" : {
+         "type" : "git",
+         "url" : "git://github.com/cafe01/dbix-eav.git",
+         "web" : "https://github.com/cafe01/dbix-eav"
+      }
+   },
+   "version" : "0.01"
+}
