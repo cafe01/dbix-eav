@@ -320,7 +320,7 @@ __END__
 
 DBIx::EAV - Entity-Attribute-Value data modeling (aka 'open schema') over DBI
 
-=head 1 SYNOPSIS
+=head1 SYNOPSIS
 
     my $eav = DBIx::EAV->new( dbh => $dbh, %constructor_params );
 
@@ -463,8 +463,11 @@ without exposing the physical database system.
 =head2 register_schema
 
 =over
+
 =item Arguments: \%schema
+
 =item Return value: none
+
 =back
 
 Register entity types specified in \%schema, where each key is the name of the

@@ -53,8 +53,8 @@ DBIx::EAV::Schema - Describes the physical EAV database schema.
 
 =head1 DESCRIPTION
 
-This class represents the physical eav database schema. Will never need to instantiate
-an object of this class directly.
+This class represents the physical eav database schema. Will never need to
+instantiate an object of this class directly.
 
 =head1 TABLES
 
@@ -66,35 +66,17 @@ This table stores all entities. All columns of of this table are presented as
 static attributes for all entity types. So you can add any number of columns in
 addition to the required ones.
 
-=over
-
-=item Columns:
-
-=over
-
-=item id INT NOT NULL AUTOINCREMENT
-
-=item entity_type_id INT
-
-=item created_at DATETIME
-
-=item updated_at DATETIME
-
-=back
-
-=item Foreing keys:
-
-=over
-
-=item entity_type_id REFERENCES entity_types.id
-
-=back
-
 =head2 attributes
 
 =head2 relationships
 
 =head2 type_hierarchy
+
+=head2 entities
+
+=head2 entity_relationships
+
+=head2 <data_type>_values
 
 =head1 METHODS
 
@@ -103,8 +85,6 @@ addition to the required ones.
     my $table = $schema->table($name);
 
 Returns a L<DBIx::EAV::Table> representing the table $name.
-
-=head2 REQUIRED SCHEMA
 
 =head1 LICENSE
 

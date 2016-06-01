@@ -288,11 +288,11 @@ __END__
 
 DBIx::EAV::EntityType - An entity type. Its attributes and relationships.
 
-=head 1 SYNOPSIS
+=head1 SYNOPSIS
 
-=head 1 DESCRIPTION
+=head1 DESCRIPTION
 
-=head 1 METHODS
+=head1 METHODS
 
 =head1 LICENSE
 

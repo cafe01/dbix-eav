@@ -2,6 +2,8 @@
 
 DBIx::EAV - Entity-Attribute-Value data modeling (aka 'open schema') over DBI
 
+# SYNOPSIS
+
     my $eav = DBIx::EAV->new( dbh => $dbh, %constructor_params );
 
     # or
@@ -141,9 +143,12 @@ without exposing the physical database system.
 
 ## register\_schema
 
-> Register entity types specified in \\%schema, where each key is the name of the
-> entity and the value is a hashref describing its attributes and relationships.
-> Described in detail in ["ENTITY DEFINITION"](#entity-definition).
+- Arguments: \\%schema
+- Return value: none
+
+Register entity types specified in \\%schema, where each key is the name of the
+entity and the value is a hashref describing its attributes and relationships.
+Described in detail in ["ENTITY DEFINITION"](#entity-definition).
 
 ## resultset
 
@@ -194,19 +199,3 @@ it under the same terms as Perl itself.
 # AUTHOR
 
 Carlos Fernando Avila Gratz &lt;cafe@kreato.com.br>
-
-# POD ERRORS
-
-Hey! **The above document had some coding errors, which are explained below:**
-
-- Around line 323:
-
-    Unknown directive: =head
-
-- Around line 465:
-
-    &#x3d;over should be: '=over' or '=over positive\_number'
-
-- Around line 475:
-
-    You forgot a '=back' before '=head2'
