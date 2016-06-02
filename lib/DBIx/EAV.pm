@@ -433,7 +433,7 @@ The specific tables used by this implementation are described in L<DBIx::EAV::Sc
 =head2 When the number of possible attributes is huge
 
 EAV modeling has been used by health and clinical software by decades because the
-number of possible attributes likes tests results and diagnostics are huge and
+number of possible attributes like tests results and diagnostics are huge and
 just a few of those attributes are acctualy filled (non-NULL).
 
 =head2 When you dont't know your schema in advance
@@ -527,13 +527,14 @@ Described in detail in L<ENTITY DEFINITION>.
 
 =over
 
-=item Arguments: $type_name
+=item Arguments: $name
 
 =item Return value: L<$rs|DBIx::EAV::ResultSet>
 
 =back
 
-Returns a new L<resultset|DBIx::EAV::ResultSet> instance for type C<$type>.
+Returns a new L<resultset|DBIx::EAV::ResultSet> instance for
+L<type|DBIx::EAV::EntityType> C<$name>.
 
     my $rs = $eav->resultset('Artist');
 
