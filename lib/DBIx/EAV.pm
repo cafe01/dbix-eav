@@ -334,17 +334,18 @@ __END__
 
 =head1 NAME
 
-DBIx::EAV - Entity-Attribute-Value data modeling (aka 'open schema') over DBI
+DBIx::EAV - Entity-Attribute-Value data modeling (aka 'open schema') for Perl
 
 =head1 SYNOPSIS
 
     my $eav = DBIx::EAV->new( dbh => $dbh, %constructor_params );
 
     # or
-    my $eav = DBIx::EAV->connect( \%connect_info, \%constructor_params );
+    my $eav = DBIx::EAV->connect( $dbi_dsn, $dbi_user, $dbi_pass, $dbi_attrs, \%constructor_params );
 
     # define the entities schema
     my %schema = (
+
         Artist => {
             has_many     => 'Review',
             many_to_many => 'CD',
@@ -353,11 +354,16 @@ DBIx::EAV - Entity-Attribute-Value data modeling (aka 'open schema') over DBI
 
         CD => {
             has_many     => ['Track', 'Review'],
+            has_one      => ['CoverImage'],
             attributes   => [qw/ title description:text rating:int /]
         },
 
         Track => {
             attributes   => [qw/ title description:text duration:int /]
+        },
+
+        CoverImage => {
+            attributes   => [qw/ url /]
         },
 
         Review => {
@@ -374,7 +380,7 @@ DBIx::EAV - Entity-Attribute-Value data modeling (aka 'open schema') over DBI
     $eav->register_schema(\%schema);
 
     # insert data (and possibly related data)
-    my $bob = $eav->model('Artist')->insert({
+    my $bob = $eav->resultset('Artist')->insert({
             name => 'Robert',
             description => '...',
             cds => [
@@ -403,15 +409,15 @@ DBIx::EAV - Entity-Attribute-Value data modeling (aka 'open schema') over DBI
 
 
     # retrieve Bob from database
-    my $bob = $eav->resultset('Artist')->find_one({ name => 'Bob' });
+    my $bob = $eav->resultset('Artist')->find({ name => 'Bob' });
 
     # retrieve Bob's cds from CD collection
-    my @cds = $eav->resultset('CD')->find({ artist => $bob })->all; # which is the same as: $bob->get('cds')->all
+    my @cds = $eav->resultset('CD')->search({ artist => $bob })->all; # which is the same as: $bob->get('cds')->all
 
     # or traverse the cds using the cursor
-    my $cds = $eav->resultset('CD')->find({ artist => $bob });
+    my $cds_rs = $eav->resultset('CD')->search({ artist => $bob });
 
-    while (my $cd = $cds->next) {
+    while (my $cd = $cds_rs->next) {
         print $cd->get('title');
     }
 
