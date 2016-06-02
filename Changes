@@ -2,6 +2,10 @@ Revision history for Perl extension DBIx-EAV
 
 {{$NEXT}}
 
+0.02 2016-06-02T04:59:44Z
+
+    - implemented DBIx::EAV->connect() method
+	
 0.01 2016-06-02T03:10:43Z
 
     - initial import from cafe's private repo
