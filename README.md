@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/cafe01/dbix-eav.svg?branch=master)](https://travis-ci.org/cafe01/dbix-eav)
 # NAME
 
 DBIx::EAV - Entity-Attribute-Value data modeling (aka 'open schema') over DBI
