@@ -48,7 +48,7 @@
             "SQL::Abstract" : "0",
             "Scalar::Util" : "0",
             "perl" : "5.008001",
-            "strictures" : "0"
+            "strictures" : "2.000003"
          }
       },
       "test" : {

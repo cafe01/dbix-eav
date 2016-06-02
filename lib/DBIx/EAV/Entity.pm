@@ -1,7 +1,7 @@
 package DBIx::EAV::Entity;
 
 use Moo;
-use strictures;
+use strictures 2;
 use Scalar::Util qw/ blessed /;
 use Data::Dumper;
 

@@ -115,7 +115,7 @@ The specific tables used by this implementation are described in [DBIx::EAV::Sch
 ## When the number of possible attributes is huge
 
 EAV modeling has been used by health and clinical software by decades because the
-number of possible attributes likes tests results and diagnostics are huge and
+number of possible attributes like tests results and diagnostics are huge and
 just a few of those attributes are acctualy filled (non-NULL).
 
 ## When you dont't know your schema in advance
@@ -201,10 +201,11 @@ Described in detail in ["ENTITY DEFINITION"](#entity-definition).
 
 ## resultset
 
-- Arguments: $type\_name
+- Arguments: $name
 - Return value: [$rs](https://metacpan.org/pod/DBIx::EAV::ResultSet)
 
-Returns a new [resultset](https://metacpan.org/pod/DBIx::EAV::ResultSet) instance for type `$type`.
+Returns a new [resultset](https://metacpan.org/pod/DBIx::EAV::ResultSet) instance for
+[type](https://metacpan.org/pod/DBIx::EAV::EntityType) `$name`.
 
     my $rs = $eav->resultset('Artist');
 

@@ -2,7 +2,7 @@ requires 'perl', '5.008001';
 
 requires 'Moo';
 requires 'DBI';
-requires 'strictures';
+requires 'strictures', '2.000003';
 requires 'Scalar::Util';
 requires 'SQL::Abstract';
 requires 'Lingua::EN::Inflect', '1.899';

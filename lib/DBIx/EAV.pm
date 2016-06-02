@@ -1,7 +1,7 @@
 package DBIx::EAV;
 
 use Moo;
-use strictures;
+use strictures 2;
 use DBI;
 use DateTime;
 use Lingua::EN::Inflect ();
