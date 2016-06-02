@@ -189,6 +189,12 @@ through SELECT queries.
 
 ## connect
 
+- Arguments: $dsn, $user, $pass, $attrs, $constructor\_params
+- Return Value: $eav
+
+Connects to the database via `DBI->connect($dsn, $user, $pass, $attrs)`
+then returns a new instance via ["new"](#new).
+
 # METHODS
 
 ## register\_schema
@@ -198,7 +204,7 @@ through SELECT queries.
 
 Register entity types specified in \\%schema, where each key is the name of the
 entity and the value is a hashref describing its attributes and relationships.
-Described in detail in ["ENTITY DEFINITION"](#entity-definition).
+Described in detail in ["ENTITY DEFINITION" in DBIx::EAV::EntityType](https://metacpan.org/pod/DBIx::EAV::EntityType#ENTITY-DEFINITION).
 
 ## resultset
 

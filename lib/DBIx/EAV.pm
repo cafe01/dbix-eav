@@ -102,6 +102,23 @@ sub BUILD {
     }
 }
 
+sub connect {
+    my ($class, $dsn, $user, $pass, $attrs, $constructor_params) = @_;
+
+    croak 'Missing $dsn argument for connect()' unless $dsn;
+
+    croak "connect() must be called as a class method."
+        if ref $class;
+
+    $constructor_params //= {};
+
+    $constructor_params->{dbh} = DBI->connect($dsn, $user, $pass, $attrs)
+        or die $DBI::errstr;
+
+    $class->new($constructor_params);
+}
+
+
 sub db_driver_name {
     shift->dbh->{Driver}{Name};
 }
@@ -506,6 +523,17 @@ through SELECT queries.
 
 =head2 connect
 
+=over
+
+=item Arguments: $dsn, $user, $pass, $attrs, $constructor_params
+
+=item Return Value: $eav
+
+=back
+
+Connects to the database via C<< DBI->connect($dsn, $user, $pass, $attrs) >>
+then returns a new instance via L</new>.
+
 =head1 METHODS
 
 =head2 register_schema
@@ -520,7 +548,7 @@ through SELECT queries.
 
 Register entity types specified in \%schema, where each key is the name of the
 entity and the value is a hashref describing its attributes and relationships.
-Described in detail in L<ENTITY DEFINITION>.
+Described in detail in L<DBIx::EAV::EntityType/"ENTITY DEFINITION">.
 
 
 =head2 resultset

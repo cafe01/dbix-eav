@@ -294,7 +294,7 @@ DBIx::EAV::EntityType - An entity type. Its attributes and relationships.
 
 =head1 ENTITY DEFINITION
 
-An entity definition is a key/value pair in the form of C<EntityName => \%definition>,
+An entity definition is a key/value pair in the form of C<< EntityName => \%definition >>,
 where the possible keys for %definition are:
 
 =over
