@@ -4,6 +4,7 @@ use Moo;
 use Carp qw/ croak confess /;
 use Data::Dumper;
 use SQL::Abstract;
+use Scalar::Util qw/ blessed /;
 
 my $sql = SQL::Abstract->new();
 
