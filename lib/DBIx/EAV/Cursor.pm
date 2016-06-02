@@ -476,21 +476,6 @@ to create a instance of this class yourself.
 
 Returns all entities in the result.
 
-
-=head2 count
-
-=over 4
-
-=item Arguments: none
-
-=item Return Value: $count
-
-=back
-
-Performs an SQL C<COUNT> with the same query as the cursor was built
-with to find the number of elements.
-
-
 =head2 next
 
 =over 4
@@ -514,7 +499,6 @@ Note that you need to store the cursor object, and call C<next> on it.
 Calling C<< resultset('CD')->next >> repeatedly will always return the
 first record from the cursor.
 
-
 =head2 first
 
 =over 4
@@ -528,30 +512,10 @@ first record from the cursor.
 L<Resets|/reset> the cursor (causing a fresh query to storage) and returns
 an object for the first result (or C<undef> if the resultset is empty).
 
-=head2 limit
+=head2 reset
 
-=over 4
-
-=item Arguments: $limit
-
-=item Return Value: L<$self|DBIx::EAV::Cursor>
-
-=back
-
-Sets the query L<limit> option. Dies if called when the query is already executed.
-
-=head2 offset
-
-=over 4
-
-=item Arguments: $offset
-
-=item Return Value: L<$self|DBIx::EAV::Cursor>
-
-=back
-
-Sets the query L<offset> option. Dies if called when the query is already executed.
-
+Deletes the current statement handle, if any. Next data fetching will trigger a
+new database query.
 
 =head1 LICENSE
 

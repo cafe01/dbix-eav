@@ -159,7 +159,7 @@ attributes to an existing entity type is very easy and cheap.
 
 The actual attribute data stored in one of the value tables. There is one value
 table for each data type.
-See [data\_types](https://metacpan.org/pod/data_types), [DBIx::EAV::Schema](https://metacpan.org/pod/DBIx::EAV::Schema).
+See ["data\_types"](#data_types), [DBIx::EAV::Schema](https://metacpan.org/pod/DBIx::EAV::Schema).
 
 ## Physical Schema
 
@@ -170,7 +170,7 @@ This is the actual database tables used by the EAV system. Its represented by
 
 Its the total set of Entity Types registered on the system, which form the
 actual application business model.
-See [register\_schema](https://metacpan.org/pod/register_schema).
+See ["register\_schema"](#register_schema).
 
 ## ResultSet
 
@@ -235,13 +235,13 @@ Shortcut for `->schema->table`.
 
 ## data\_types
 
-Returns an arrayref of data types known to the system. See [new](https://metacpan.org/pod/new).
+Returns an arrayref of data types known to the system. See ["new"](#new).
 
 ## has\_data\_type
 
 - Arguments: $name
 
-Returns true if the data type `$name` exists. See [data\_types](https://metacpan.org/pod/data_types).
+Returns true if the data type `$name` exists. See ["data\_types"](#data_types).
 
 ## db\_driver\_name
 

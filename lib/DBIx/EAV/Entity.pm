@@ -488,9 +488,9 @@ Returns a attribute value or related entities.
 =back
 
 Set a new value for the attribute or relationship C<$name>. Returns C<$self> to
-allow method chaining. Even though subsequent calls to L<get> will return the
-new value you have just L<set>, changes are not saved in the database until you
-call L<save>. Use L<update> if you wan't to set and save in one call.
+allow method chaining. Even though subsequent calls to L</get> will return the
+new value you have just L</set>, changes are not saved in the database until you
+call L</save>. Use L</update> if you wan't to set and save in one call.
 
     $cd->set('title' => 'New title');
     $cd->get('title');  # New title
@@ -508,7 +508,7 @@ not the related entities themselves). Valid values for relationships are
 existing L<entities|DBIx::EAV::Entity> or hashref suitable for inserting the
 related entity, or a arrayref of those (for *_many relationships). Passing an
 entity instance which is not of the correct type for the relationship or not
-L<in_storage> is a fatal error.
+L</in_storage> is a fatal error.
 
 
     # set (and replace) the cd tracks
@@ -530,7 +530,7 @@ You can obviously set attribute and relationships at the same time:
         tracks => \@tracks
     });
 
-Se also L<add_related> if you want to add (instead of replace) related entities.
+Se also L</add_related> if you want to add (instead of replace) related entities.
 
 =head2 save
 
@@ -550,7 +550,7 @@ Save all changes to the database.
     $entity->save;
 
 First thing C<save> does is insert the entity (in the entities table) if its
-not already L<in_storage>. Then it saves the non-static attributes:
+not already L</in_storage>. Then it saves the non-static attributes:
 attributes values (in the values tables) are inserted, updated or deleted,
 whether the value is new (undef -> value), existing (value -> value),
 or undef (value -> undef).
@@ -592,7 +592,7 @@ A shortcut for C<set()> and C<save()>.
 =back
 
 Fetches the attributes values from database L<value tables> and stores in
-entity's L<raw> data structure. If this method is called without arguments
+entity's L</raw> data structure. If this method is called without arguments
 all attributes will be loaded.
 
 NOTE: In the current version of DBIx::EAV this method is called internally by
@@ -613,7 +613,7 @@ entities via the C<$rel_name> relationship. C<$related_data> must be a
 L<entity|DBIx::EAV::Entity> instance (of the proper type for the relationship)
 or a hashref of data to be inserted (again, suitable for the related type), or a
 arrayref of those. Passing L<Entity|DBIx::EAV::Entity> objects which are not
-L<in_storage> results in a fatal error.
+L</in_storage> results in a fatal error.
 
     # add tracks to a cd
     $cd->add_related('tracks', [
@@ -644,7 +644,7 @@ doesn't delete the related entities.
 =head2 discard_changes
 
 Reverts all modified attributes to the its original value. Note that the internal
-memory of modified attributes is reset after a call to L<save>.
+memory of modified attributes is reset after a call to L</save>.
 
 =head2 delete
 

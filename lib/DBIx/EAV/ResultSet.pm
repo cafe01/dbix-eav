@@ -574,7 +574,7 @@ C<< $rs->search($cond, \%attrs)->count >>
 
 Deletes the entities matching \%where condition without fetching them first.
 This will run faster, at the cost of related entities not being casdade deleted.
-Call L<delete_all> if you want to cascade delete related entities.
+Call L</delete_all> if you want to cascade delete related entities.
 
 When L<DBIx::EAV/database_cascade_delete> is enabled, the delete operation is
 done in a single query. Otherwise one more query is needed for each of the
@@ -587,7 +587,7 @@ L<relationship link table|DBIx::EAV::Schema>.
 
 This method requires database support for C<DELETE ... JOIN>. Since the current
 implementation of DBIx::EAV is only tested against MySQL and SQLite, this method
-calls L<delete_all> if SQLite database is detected.
+calls L</delete_all> if SQLite database is detected.
 
 =back
 

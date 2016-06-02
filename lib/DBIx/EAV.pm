@@ -476,7 +476,7 @@ attributes to an existing entity type is very easy and cheap.
 
 The actual attribute data stored in one of the value tables. There is one value
 table for each data type.
-See L<data_types>, L<DBIx::EAV::Schema>.
+See L</data_types>, L<DBIx::EAV::Schema>.
 
 =head2 Physical Schema
 
@@ -487,7 +487,7 @@ L<DBIx::EAV::Schema>.
 
 Its the total set of Entity Types registered on the system, which form the
 actual application business model.
-See L<register_schema>.
+See L</register_schema>.
 
 =head2 ResultSet
 
@@ -571,7 +571,7 @@ Shortcut for C<< ->schema->table >>.
 
 =head2 data_types
 
-Returns an arrayref of data types known to the system. See L<new>.
+Returns an arrayref of data types known to the system. See L</new>.
 
 =head2 has_data_type
 
@@ -581,7 +581,7 @@ Returns an arrayref of data types known to the system. See L<new>.
 
 =back
 
-Returns true if the data type C<$name> exists. See L<data_types>.
+Returns true if the data type C<$name> exists. See L</data_types>.
 
 =head2 db_driver_name
 
