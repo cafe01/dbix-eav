@@ -13,7 +13,7 @@ use DBIx::EAV::Schema;
 use Carp qw/croak confess/;
 use Scalar::Util 'blessed';
 
-our $VERSION = "0.02";
+our $VERSION = "0.03";
 
 # required
 has 'dbh', is => 'ro', required => 1;

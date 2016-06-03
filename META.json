@@ -1,5 +1,5 @@
 {
-   "abstract" : "Entity-Attribute-Value data modeling (aka 'open schema') over DBI",
+   "abstract" : "Entity-Attribute-Value data modeling (aka 'open schema') for Perl",
    "author" : [
       "Carlos Fernando Avila Gratz <cafe@kreato.com.br>"
    ],
@@ -46,6 +46,7 @@
             "Lingua::EN::Inflect" : "1.899",
             "Moo" : "0",
             "SQL::Abstract" : "0",
+            "SQL::Translator" : "0.11021",
             "Scalar::Util" : "0",
             "perl" : "5.008001",
             "strictures" : "2.000003"
@@ -71,5 +72,5 @@
          "web" : "https://github.com/cafe01/dbix-eav"
       }
    },
-   "version" : "0.02"
+   "version" : "0.03"
 }

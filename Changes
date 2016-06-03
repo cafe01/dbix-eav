@@ -2,10 +2,20 @@ Revision history for Perl extension DBIx-EAV
 
 {{$NEXT}}
 
+0.03 2016-06-03T17:56:55Z
+
+    * DBIx::EAV can now deploy the eav schema to the database (via SQL::Translator)
+
+    - implemented schema->deploy
+    - implemented schema->get_ddl($sqlt_producer)
+    - new constructor option 'static_attributes' to define extra 'entities' table columns
+    - tests now using schema->deploy instead of eav-schema.sql (deleted it)
+
+
 0.02 2016-06-02T04:59:44Z
 
     - implemented DBIx::EAV->connect() method
-	
+
 0.01 2016-06-02T03:10:43Z
 
     - initial import from cafe's private repo
