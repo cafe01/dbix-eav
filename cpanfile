@@ -5,6 +5,7 @@ requires 'DBI';
 requires 'strictures', '2.000003';
 requires 'Scalar::Util';
 requires 'SQL::Abstract';
+requires 'SQL::Translator', '0.11021';
 requires 'Lingua::EN::Inflect', '1.899';
 
 on 'test' => sub {

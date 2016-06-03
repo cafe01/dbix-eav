@@ -18,7 +18,7 @@ sub empty_database {
 
 
 sub get_test_dbh {
-
+    my (%options) = @_;
     my $driver = $ENV{TEST_DBIE_MYSQL} ? 'mysql' : 'SQLite';
     my $dbname = $driver eq 'mysql' ? $ENV{TEST_DBIE_MYSQL} : ':memory:';
 
@@ -28,16 +28,6 @@ sub get_test_dbh {
 
     $dbh->{sqlite_see_if_its_a_number} = 1;
 
-    open my $fh, '<', "$FindBin::Bin/eav-schema.sql"
-        or die "open error: $!";
-
-    my @lines = <$fh>;
-    my $content = join '', @lines;
-
-    $dbh->do($_) for grep { /\w/ }
-                    #  map { diag $_; $_; }
-                     map { $driver eq 'SQLite' ? _to_sqlite($_) : $_ } split ';', $content;
-
     $dbh;
 }
 
@@ -46,17 +36,6 @@ sub read_file {
     open my $fh, '<', $filename or die "$!";
     return join '', <$fh>;
 }
-
-
-sub _to_sqlite {
-    my $cmd = shift;
-    return '' if $cmd =~ /^\s*SET/m;
-    $cmd =~ s/AUTO_INCREMENT//;
-    $cmd =~ s/(UNIQUE|) INDEX.*$//s;
-    $cmd =~ s/\),$/))/m;
-    $cmd;
-}
-
 
 
 

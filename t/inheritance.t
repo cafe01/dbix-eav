@@ -11,7 +11,11 @@ use DBIx::EAV;
 use Test::DBIx::EAV qw/ get_test_dbh read_file/;
 
 
-my $eav = DBIx::EAV->new( dbh => get_test_dbh(), tenant_id => 42 );
+my $eav = DBIx::EAV->new(
+    dbh => get_test_dbh, tenant_id => 42,
+    static_attributes => [qw/ is_deleted:bool::0 is_active:bool::1 is_published:bool::1 /]
+);
+$eav->schema->deploy( add_drop_table => $eav->db_driver_name eq 'mysql');
 $eav->register_schema(Load(read_file("$FindBin::Bin/ecommerce.yml")));
 
 
@@ -55,7 +59,7 @@ is $curved_monitor->attribute('resolution')->{id}, $monitor->attribute('resoluti
 is $curved_monitor->attribute('contrast_ratio')->{id}, $monitor->attribute('contrast_ratio')->{id}, 'child type3 shares attr2 with parent type';
 
 is_deeply [sort $harddisk->attributes( names => 1 )],
-          [qw/ capacity created_at description entity_type_id id is_active is_deleted is_published name price rpm tenant_id updated_at /],
+          [qw/ capacity description entity_type_id id is_active is_deleted is_published name price rpm /],
           'attributes( names => 1)';
 
 

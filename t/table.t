@@ -7,10 +7,13 @@ use lib 'lib';
 use lib "$FindBin::Bin/lib";
 use Data::Dumper;
 use Test::DBIx::EAV qw/ get_test_dbh /;
+use DBIx::EAV;
 
 BEGIN { use_ok 'DBIx::EAV::Table' }
 
 my $dbh = get_test_dbh;
+my $eav = DBIx::EAV->new( dbh => $dbh, tenant_id => 42 );
+$eav->schema->deploy( add_drop_table => $eav->db_driver_name eq 'mysql');
 
 my $table = DBIx::EAV::Table->new(
     dbh => $dbh,
@@ -30,7 +33,6 @@ test_delete();
 
 sub test_insert {
 
-    diag 'testing insert()';
 
     my $res = $table->insert({ name => 'Foo' });
 
@@ -45,7 +47,6 @@ sub test_insert {
 
 sub test_select {
 
-    diag 'testing select()';
 
     my $res = $table->select({ name => 'Foo' });
     isa_ok $res, 'DBI::st', 'returns statement handle';
@@ -55,7 +56,6 @@ sub test_select {
 
 sub test_select_one {
 
-    diag 'testing select_one()';
 
     my $res = $table->select_one({ name => 'Foo' });
     isa_ok $res, 'HASH', 'returns hashref';
@@ -65,7 +65,6 @@ sub test_select_one {
 
 sub test_update {
 
-    diag 'testing update()';
 
     my $res = $table->update({ name => 'FooBar' }, { id => 1});
 
@@ -77,7 +76,6 @@ sub test_update {
 
 sub test_delete {
 
-    diag 'testing delete()';
 
     my $res = $table->delete({ id => 1});
 

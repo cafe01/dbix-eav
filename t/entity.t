@@ -11,7 +11,15 @@ use YAML;
 use Test::DBIx::EAV qw/ get_test_dbh read_file /;
 
 my $dbh = get_test_dbh;
-my $eav = DBIx::EAV->new( dbh => $dbh, tenant_id => 42 );
+
+my $eav = DBIx::EAV->new(
+    dbh => $dbh,
+    tenant_id => 42,
+    static_attributes => [qw/ is_deleted:bool::0 is_active:bool::1 is_published:bool::1 /]
+);
+
+
+$eav->schema->deploy( add_drop_table => $eav->db_driver_name eq 'mysql');
 $eav->register_schema(Load(read_file("$FindBin::Bin/entities.yml")));
 
 
@@ -43,18 +51,14 @@ sub test_save {
     $bob->save();
 
     is $bob->in_storage, 1, 'in_storage';
-    like $bob->get("created_at"), qr/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/, 'created_at';
 
     is_deeply $dbh->selectrow_hashref('SELECT * from eav_entities WHERE id = '.$bob->id),
               {
                   id => $bob->id,
-                  tenant_id => $eav->tenant_id,
                   entity_type_id => $eav->type('Artist')->id,
                   is_published => 1,
                   is_active => 1,
                   is_deleted => 0,
-                  created_at => $bob->get('created_at'),
-                  updated_at => undef
               },
               'entity row';
 
@@ -86,9 +90,6 @@ sub test_save {
             { value => 'Peter Machintosh' },
             "name updated";
 
-    like $dbh->selectrow_hashref(sprintf 'SELECT updated_at from eav_entities WHERE id = %d', $peter->id)->{updated_at},
-            qr/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/,
-            "updated_at updated";
 
 
     # update static and dynamic attrs

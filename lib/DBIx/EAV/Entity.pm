@@ -175,7 +175,6 @@ sub save {
     my $entities_table = $self->eav->table('entities');
     my $is_new_entity = not $self->in_storage;
     my $raw = $self->raw;
-    my $now = DateTime->now->strftime('%F %T');
 
     # modified static attrs
     my %modified_static_attributes = map { $_ => $self->raw->{$_} }
@@ -190,7 +189,6 @@ sub save {
         my $id = $entities_table->insert({
             %modified_static_attributes,
             entity_type_id => $type->id,
-            created_at => $now
         });
 
         die "Invalid ID returned ($id) while inserting new entity."
@@ -256,9 +254,6 @@ sub save {
 
     # update static attributes
     if ($modified_count > 0) {
-
-        $modified_static_attributes{updated_at} = $now
-            unless $is_new_entity;
 
         $entities_table->update(\%modified_static_attributes, { id => $self->id })
             if keys(%modified_static_attributes) > 0;

@@ -10,9 +10,6 @@ use DBIx::EAV::EntityType;
 use DBIx::EAV::Entity;
 use DBIx::EAV::ResultSet;
 use DBIx::EAV::Schema;
-use constant {
-    SQL_DEBUG => $ENV{DBIX_EAV_TRACE}
-};
 use Carp qw/croak confess/;
 use Scalar::Util 'blessed';
 
@@ -21,85 +18,30 @@ our $VERSION = "0.02";
 # required
 has 'dbh', is => 'ro', required => 1;
 
-# optional
+# options
 has 'database_cascade_delete', is => 'ro', default => 0;
 has 'table_prefix', is => 'ro', default => 'eav_';
 has 'tenant_id', is => 'ro';
-has 'data_types', is => 'ro', default => sub { [qw/ int decimal varchar text datetime boolean /] };
-has 'schema', is => 'rw';
+has 'data_types', is => 'ro', default => sub { [qw/ int decimal varchar text datetime bool /] };
+has 'static_attributes', is => 'ro', default => sub { [] };
 has 'default_data_type', is => 'ro', default => 'varchar';
 
 # internal
+has 'schema', is => 'ro', lazy => 1, builder => 1, init_arg => undef, handles => [qw/ table dbh_do/];
 has '_types', is => 'ro', default => sub { {} };
 has '_types_by_id', is => 'ro', default => sub { {} };
 
 
-sub BUILD {
+sub _build_schema {
     my $self = shift;
 
-    my %schema_params = (
+    DBIx::EAV::Schema->new(
         dbh          => $self->dbh,
         tenant_id    => $self->tenant_id,
-        table_prefix => $self->table_prefix
-    );
-
-    # must be one of: (DBIx::EAV::)Schema instance, Schema subclass name, or Schema config
-    if (defined $self->schema) {
-
-        my $schema = $self->schema;
-
-        if (blessed $schema) {
-            die sprintf("invalid schema: %s is not a DBIx::EAV::Schema or subclass.", ref $schema)
-                unless $schema->isa('DBIx::EAV::Schema');
-
-            $schema->tenant_id($self->tenant_id);
-        }
-        else {
-
-            if (ref $schema eq 'HASH') {
-                $self->schema(DBIx::EAV::Schema->new( %schema_params ))
-            }
-            elsif (ref $schema eq '') {
-                require $schema;
-                $self->schema($schema->new( %schema_params ));
-            }
-            else {
-                die "Invalid schema. Must be one of: (DBIx::EAV::)Schema instance, Schema subclass name, or Schema config";
-            }
-        }
-    }
-    else {
-
-        my $schema = DBIx::EAV::Schema->new(
-            %schema_params,
-            tables => {
-
-                entities =>
-                    [qw/ id tenant_id entity_type_id created_at updated_at is_deleted is_active is_published /],
-
-                entity_types =>
-                    [qw/ id tenant_id name /],
-
-                attributes =>
-                    [qw/ id tenant_id entity_type_id name data_type /],
-
-                relationships =>
-                    [qw/ id tenant_id name left_entity_type_id right_entity_type_id is_has_one is_has_many is_many_to_many /],
-
-                entity_relationships =>
-                    [qw/ relationship_id left_entity_id right_entity_id /],
-
-                type_hierarchy =>
-                    [qw/ parent_type_id child_type_id /],
-
-                map {
-                    ("value_$_" => [qw/ entity_id attribute_id value /])
-                } @{ $self->data_types }
-            }
-        );
-
-        $self->schema($schema);
-    }
+        table_prefix => $self->table_prefix,
+        data_types   => $self->data_types,
+        static_attributes => $self->static_attributes
+    )
 }
 
 sub connect {
@@ -124,23 +66,6 @@ sub db_driver_name {
 }
 
 
-
-sub dbh_do {
-    my ($self, $stmt, $bind) = @_;
-
-    if (SQL_DEBUG) {
-        my $i = 0;
-        printf STDERR "$stmt: %s\n",
-            join('  ', map { $i++.'='.$_ } @{ $bind || [] });
-    }
-
-    my $sth = $self->dbh->prepare($stmt);
-    my $rv = $sth->execute(ref $bind eq 'ARRAY' ? @$bind : ());
-    die $sth->errstr unless defined $rv;
-
-    return ($rv, $sth);
-}
-
 sub has_data_type {
     my ($self, $name) = @_;
     foreach (@{$self->data_types}) {
@@ -149,10 +74,6 @@ sub has_data_type {
     0;
 }
 
-sub table {
-    my ($self, $name) = @_;
-    $self->schema->table($name);
-}
 
 sub has_type {
     my ($self, $name) = @_;

@@ -13,6 +13,7 @@ use DBIx::EAV;
 
 
 my $eav = DBIx::EAV->new( dbh => get_test_dbh, tenant_id => 42 );
+$eav->schema->deploy( add_drop_table => $eav->db_driver_name eq 'mysql');
 $eav->register_schema(Load(read_file("$FindBin::Bin/entities.yml")));
 
 

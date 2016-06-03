@@ -11,13 +11,40 @@ use Test::DBIx::EAV qw/ get_test_dbh read_file /;
 use DBIx::EAV;
 
 
-my $dbh = get_test_dbh;
+my $dbh = get_test_dbh( no_deploy => 1 );
 my $eav = DBIx::EAV->new( dbh => $dbh, tenant_id => 42 );
 
 
-
+test_create_tables();
 test_register_schema();
 test_entity_type();
+
+
+sub test_create_tables {
+
+    my $schema = $eav->schema;
+
+    isa_ok $schema->translator, 'SQL::Translator', 'schema->translator';
+
+    like $schema->get_ddl, qr/CREATE TABLE/, 'get_dll()';
+    like $schema->get_ddl('JSON'), qr/SQL::Translator::Producer::JSON/, 'get_dll("JSON")';
+
+    $eav->schema->deploy( add_drop_table => $eav->db_driver_name eq 'mysql' );
+
+    my $check_sqlt = SQL::Translator->new(
+        parser => 'DBI',
+        parser_args => {
+            dbh => $dbh
+        }
+    );
+
+    $check_sqlt->translate;
+    ok $check_sqlt->schema->get_table($eav->table_prefix.$_), "table '$_' created"
+        for (qw/ entity_types entities attributes relationships entity_relationships /,
+             map { "value_$_" } @{$eav->data_types}
+            );
+}
+
 
 sub test_register_schema {
 
@@ -35,6 +62,7 @@ sub test_register_schema {
     is $artist->{name}, 'Artist', 'Artist type rgistered';
     is $cd->{name}, 'CD', 'CD type rgistered';
     is $track->{name}, 'Track', 'Track type rgistered';
+    is $track->{tenant_id}, $eav->tenant_id, 'type tenant_id';
 
     # attributes
     my $name_attr = $dbh->selectrow_hashref(sprintf 'SELECT * from eav_attributes WHERE name = "name" AND entity_type_id = %d', $artist->{id});

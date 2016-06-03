@@ -11,7 +11,13 @@ use DBIx::EAV;
 use Test::DBIx::EAV qw/ get_test_dbh empty_database read_file /;
 
 
-my $eav = DBIx::EAV->new( dbh => get_test_dbh(), tenant_id => 42 );
+my $eav = DBIx::EAV->new(
+    dbh => get_test_dbh,
+    tenant_id => 42,
+    static_attributes => [qw/ is_deleted:bool::0 is_active:bool::1 is_published:bool::1 /]
+);
+
+$eav->schema->deploy( add_drop_table => $eav->db_driver_name eq 'mysql');
 $eav->register_schema(Load(read_file("$FindBin::Bin/entities.yml")));
 
 
@@ -47,8 +53,8 @@ sub test_query {
 
     isa_ok $cursor->_sth, 'DBI::st', '_sth';
     isa_ok $bind, 'ARRAY', 'bind values array';
-    # diag $sql_query;
-    ok index($sql_query, 'SELECT me.id, me.tenant_id, me.entity_type_id, me.created_at, me.updated_at, me.is_deleted, me.is_active, me.is_published FROM eav_entities') != -1,
+    diag $sql_query;
+    ok index($sql_query, 'SELECT me.id, me.entity_type_id, me.is_deleted, me.is_active, me.is_published FROM eav_entities') != -1,
         'sql query: SELECT part';
 
     ok index($sql_query, "LEFT JOIN eav_value_int AS rating ON (rating.entity_id = me.id AND rating.attribute_id = $rating_attr->{id})") >= 0,
