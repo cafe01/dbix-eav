@@ -14,12 +14,12 @@ use DBIx::EAV;
 
 my $eav = DBIx::EAV->new( dbh => get_test_dbh, tenant_id => 42 );
 $eav->schema->deploy( add_drop_table => $eav->db_driver_name eq 'mysql');
-$eav->register_schema(Load(read_file("$FindBin::Bin/entities.yml")));
+$eav->register_types(Load(read_file("$FindBin::Bin/entities.yml")));
 
 
 test_has_many();
-# test_many_to_many();
-# test_has_one();
+test_many_to_many();
+test_has_one();
 
 
 
@@ -29,9 +29,9 @@ sub test_has_many {
     my $cd1 = $eav->resultset('CD')->insert({
         title => 'CD 01',
         tracks => [
-            { title => 'Track1' },
-            { title => 'Track2' },
-            { title => 'Track3' }
+            { title => 'Track1', duration => 60 },
+            { title => 'Track2', duration => 90 },
+            { title => 'Track3', duration => 120 }
         ]
     });
 
@@ -41,6 +41,12 @@ sub test_has_many {
 
     # cd->tracks
     is_deeply [map { $_->get('title') } $cd1->get('tracks')->all], [qw/ Track1 Track2 Track3 /], 'cd->tracks';
+
+    is_deeply [map { $_->get('title') } $cd1->get('tracks', { duration => { '>' => 60 }})->all],
+              [qw/ Track2 Track3 /], 'cd->tracks + query';
+
+    is_deeply [map { $_->get('title') } $cd1->get('tracks', { duration => { '>' => 60 }}, { order_by => { -desc => 'duration' }})->all],
+              [qw/ Track3 Track2 /], 'cd->tracks + query options';
 
     # move track2 to cd2
     diag "moving track2 to cd2";

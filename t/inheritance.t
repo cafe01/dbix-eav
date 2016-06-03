@@ -16,7 +16,7 @@ my $eav = DBIx::EAV->new(
     static_attributes => [qw/ is_deleted:bool::0 is_active:bool::1 is_published:bool::1 /]
 );
 $eav->schema->deploy( add_drop_table => $eav->db_driver_name eq 'mysql');
-$eav->register_schema(Load(read_file("$FindBin::Bin/ecommerce.yml")));
+$eav->register_types(Load(read_file("$FindBin::Bin/ecommerce.yml")));
 
 
 my $product  = $eav->type('Product');

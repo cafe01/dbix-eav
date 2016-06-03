@@ -16,7 +16,7 @@ my $eav = DBIx::EAV->new( dbh => $dbh, tenant_id => 42 );
 
 
 test_create_tables();
-test_register_schema();
+test_register_types();
 test_entity_type();
 
 
@@ -46,13 +46,13 @@ sub test_create_tables {
 }
 
 
-sub test_register_schema {
+sub test_register_types {
 
     my $schema = Load(read_file("$FindBin::Bin/entities.yml"));
 
     is $eav->has_data_type('int'), 1, 'has_data_type';
 
-    $eav->register_schema($schema);
+    $eav->register_types($schema);
 
     # entity types
     my $artist = $dbh->selectrow_hashref('SELECT * from eav_entity_types WHERE name = "Artist"');

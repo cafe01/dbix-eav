@@ -384,7 +384,7 @@ sub _parse_clause_identifier {
             return { replacement => $join_alias.'.value' }
         }
         else {
-            die sprintf "Cursor: query error: invalid identifier '%s': '%s' is not a valid attribute/relationship for '%s'",
+            die sprintf "Cursor: query error: invalid identifier '%s': '%s' is not a valid attribute/relationship for '%s'\n",
                 $identifier,
                 $id_part,
                 $current_type->name;

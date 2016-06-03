@@ -27,7 +27,8 @@ sub id {
 
 
 sub get {
-    my ($self, $name) = @_;
+    my $self = shift;
+    my $name = shift;
     my $type = $self->type;
 
     return $self->raw->{$name}
@@ -35,7 +36,7 @@ sub get {
 
     if ($type->has_relationship($name)) {
         my $rel = $type->relationship($name);
-        my $rs = $self->_get_related($name);
+        my $rs = $self->_get_related($name, @_);
         # return an Entity for has_one and belongs_to; return Cursor otherwise
         return $rs->next if
             $rel->{is_has_one} || ($rel->{is_has_many} && $rel->{is_right_entity});
@@ -48,9 +49,11 @@ sub get {
 }
 
 sub _get_related {
-    my ($self, $relname) = @_;
+    my ($self, $relname, $query, $options) = @_;
+    $query //= {};
     my $rel = $self->type->relationship($relname);
-    $self->eav->resultset($rel->{entity})->search({ $rel->{incoming_name} => $self });
+    $query->{$rel->{incoming_name}} = $self;
+    $self->eav->resultset($rel->{entity})->search($query, $options);
 }
 
 

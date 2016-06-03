@@ -108,7 +108,7 @@ sub resultset {
 }
 
 
-sub register_schema {
+sub register_types {
     my ($self, $schema) = @_;
     my %skip;
 
@@ -259,17 +259,25 @@ DBIx::EAV - Entity-Attribute-Value data modeling (aka 'open schema') for Perl
 
 =head1 SYNOPSIS
 
-    my $eav = DBIx::EAV->new( dbh => $dbh, %constructor_params );
+    #!/usr/bin/env perl
+    use strict;
+    use warnings;
+    use DBIx::EAV;
+
+    # connect to the database
+    my $eav = DBIx::EAV->connect("dbi:SQLite:database=:memory:");
 
     # or
-    my $eav = DBIx::EAV->connect( $dbi_dsn, $dbi_user, $dbi_pass, $dbi_attrs, \%constructor_params );
+    # $eav = DBIx::EAV->new( dbh => $dbh, %constructor_params );
 
-    # define the entities schema
-    my %schema = (
+    # create eav tables
+    $eav->schema->deploy;
 
+    # register entities
+    $eav->register_types({
         Artist => {
-            has_many     => 'Review',
             many_to_many => 'CD',
+            has_many     => 'Review',
             attributes   => [qw/ name:varchar description:text rating:int birth_date:datetime /]
         },
 
@@ -288,55 +296,58 @@ DBIx::EAV - Entity-Attribute-Value data modeling (aka 'open schema') for Perl
         },
 
         Review => {
-            attributes => [qw/ content:text likes:int dislikes:int /]
+            attributes => [qw/ content:text views:int likes:int dislikes:int /]
         },
+    });
 
-        User => {
-            has_many => 'Review',
-            attributes => [qw/ name email /]
-        }
-    );
-
-    # register schema (can be called multiple times)
-    $eav->register_schema(\%schema);
 
     # insert data (and possibly related data)
     my $bob = $eav->resultset('Artist')->insert({
-            name => 'Robert',
-            description => '...',
-            cds => [
-                { title => 'CD1', rating => 5 },
-                { title => 'CD2', rating => 6 },
-                { title => 'CD3', rating => 8 },
-                { title => 'CD4', rating => 9 },
-            ]
+        name => 'Robert',
+        description => '...',
+        cds => [
+            { title => 'CD1', rating => 5 },
+            { title => 'CD2', rating => 6 },
+            { title => 'CD3', rating => 8 },
+            { title => 'CD4', rating => 9 },
+        ]
      });
 
     # get attributes
-    $bob->get('name'); # Robert
+    print $bob->get('name'); # Robert
 
     # update name
     $bob->update({ name => 'Bob' });
 
     # add more cds
-    $bob->add_related('cds', { title => 'CD5' });
+    $bob->add_related('cds', { title => 'CD5', rating => 7 });
 
     # get Bob's cds via auto-generated 'cds' relationship
-    my @cds = $bob->get('cds')->all;
-    my @best_bob_cds = $bob->get('cds', { rating => { '>' => 7 } })->all;
+    print "\nAll Bob CDs:\n";
+    printf " - %s (rating %d)\n", $_->get('title'), $_->get('rating')
+        foreach $bob->get('cds');
+
+    print "\nBest Bob CDs:\n";
+    printf " - %s (rating %d)\n", $_->get('title'), $_->get('rating')
+        foreach $bob->get('cds', { rating => { '>' => 7 } });
 
 
     # ResultSets ...
 
 
     # retrieve Bob from database
-    my $bob = $eav->resultset('Artist')->find({ name => 'Bob' });
+    $bob = $eav->resultset('Artist')->find({ name => 'Bob' });
 
-    # retrieve Bob's cds from CD collection
-    my @cds = $eav->resultset('CD')->search({ artist => $bob })->all; # which is the same as: $bob->get('cds')->all
+    # retrieve Bob's cds directly from CD resultset
+    # note the use of 'artists' relationship automaticaly created
+    # from the "Artist many_to_many CD" declaration
+    my @cds = $eav->resultset('CD')->search({ artists => $bob });
 
-    # or traverse the cds using the cursor
-    my $cds_rs = $eav->resultset('CD')->search({ artist => $bob });
+    # same as above
+    @cds = $bob->get('cds');
+
+    # or traverse the cds using the resultset cursor
+    my $cds_rs = $bob->get('cds');
 
     while (my $cd = $cds_rs->next) {
         print $cd->get('title');
@@ -345,8 +356,9 @@ DBIx::EAV - Entity-Attribute-Value data modeling (aka 'open schema') for Perl
     # delete all cds
     $eav->resultset('CD')->delete;
 
-    # delete worst cds
-    $eav->resultset('CD')->delete({ rating => { '<' => 5 } });
+    # delete all cds and related data (i.e. tracks)
+    $eav->resultset('CD')->delete_all;
+
 
 
 =head1 DESCRIPTION
@@ -431,7 +443,7 @@ L<DBIx::EAV::Schema>.
 
 Its the total set of Entity Types registered on the system, which form the
 actual application business model.
-See L</register_schema>.
+See L</register_types>.
 
 =head2 ResultSet
 
@@ -463,7 +475,7 @@ then returns a new instance via L</new>.
 
 =head1 METHODS
 
-=head2 register_schema
+=head2 register_types
 
 =over
 

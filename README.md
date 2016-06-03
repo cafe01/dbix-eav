@@ -44,7 +44,7 @@ DBIx::EAV - Entity-Attribute-Value data modeling (aka 'open schema') for Perl
     );
 
     # register schema (can be called multiple times)
-    $eav->register_schema(\%schema);
+    $eav->register_types(\%schema);
 
     # insert data (and possibly related data)
     my $bob = $eav->resultset('Artist')->insert({
@@ -176,7 +176,7 @@ This is the actual database tables used by the EAV system. Its represented by
 
 Its the total set of Entity Types registered on the system, which form the
 actual application business model.
-See ["register\_schema"](#register_schema).
+See ["register\_schema"](#register_types).
 
 ## ResultSet
 

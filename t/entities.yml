@@ -20,7 +20,7 @@ Track:
   attributes:
     - { name: 'title' }
     - { name: 'description', type: 'text' }
-    - { name: 'length', type: 'int' }
+    - { name: 'duration', type: 'int' }
 
 Lyric:
   attributes:
