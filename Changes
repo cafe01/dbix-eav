@@ -2,6 +2,8 @@ Revision history for Perl extension DBIx-EAV
 
 {{$NEXT}}
 
+0.06 2016-06-04T18:35:21Z
+
     - implemented DBIx::EAV::EntityType load() class method
     - type() can now load previously registered types
     - improved relationship registration/installation

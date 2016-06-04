@@ -123,7 +123,7 @@ borrowed from [DBIx::Class](https://metacpan.org/pod/DBIx::Class), so its (API i
 
 - Arguments: %params
 
-Valid `%params`:
+Valid `%params` keys:
 
 - dbh **(required)**
 
@@ -136,10 +136,10 @@ Valid `%params`:
 
 ## connect
 
-- Arguments: $dsn, $user, $pass, $attrs, $constructor\_params
+- Arguments: $dsn, $user, $pass, $attrs, \\%constructor\_params
 
 Connects to the database via `DBI->connect($dsn, $user, $pass, $attrs)`
-then returns a new instance via ["new"](#new).
+then returns a new instance via [new(\\%constructor\_params)](#new).
 
 # METHODS
 
@@ -148,9 +148,19 @@ then returns a new instance via ["new"](#new).
 - Arguments: \\%schema
 - Return value: none
 
-Register entity types specified in \\%schema, where each key is the name of the
-entity and the value is a hashref describing its attributes and relationships.
-Described in detail in ["ENTITY DEFINITION" in DBIx::EAV::EntityType](https://metacpan.org/pod/DBIx::EAV::EntityType#ENTITY-DEFINITION).
+Registers entity types specified in \\%schema, where each key is the name of the
+[type](https://metacpan.org/pod/DBIx::EAV::EntityType) and the value is a hashref describing its
+attributes and relationships. Fully described in
+["ENTITY DEFINITION" in DBIx::EAV::EntityType](https://metacpan.org/pod/DBIx::EAV::EntityType#ENTITY-DEFINITION).
+
+This method ignores types already installed, allowing code that registers types
+to live close to the code that actually uses the types.
+
+When registering types already registered, additional attributes and
+relationships are registered accordingly. To delete attributes and values see
+["PRUNING" in DBIx::EAV::EntityType](https://metacpan.org/pod/DBIx::EAV::EntityType#PRUNING).
+
+See ["INSTALLED VS REGISTERED TYPES"](#installed-vs-registered-types).
 
 ## resultset
 
@@ -166,10 +176,13 @@ Returns a new [resultset](https://metacpan.org/pod/DBIx::EAV::ResultSet) instanc
 
 - Arguments: $name
 
-Returns the [DBIx::EAV::EntityType](https://metacpan.org/pod/DBIx::EAV::EntityType) instance for type `$name`. Dies if type
-is not installed.
+Returns the [DBIx::EAV::EntityType](https://metacpan.org/pod/DBIx::EAV::EntityType) instance for type `$name`. If the type
+instance is not already installed in this DBIx::EAV instance, we try to load
+the type definition from the database. Dies if type is not registered.
 
     my $types = $eav->type('Artist');
+
+See ["INSTALLED VS REGISTERED TYPES"](#installed-vs-registered-types).
 
 ## has\_type
 
@@ -199,6 +212,8 @@ Returns true if the data type `$name` exists. See ["data\_types"](#data_types).
 
     Set environment variable `DBIX_EAV_TRACE` to 1 to get statements printed to
     `STDERR`.
+
+# INSTALLED VS REGISTERED TYPES
 
 # LICENSE
 
