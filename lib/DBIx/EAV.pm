@@ -13,7 +13,7 @@ use DBIx::EAV::Schema;
 use Carp qw/croak confess/;
 use Scalar::Util 'blessed';
 
-our $VERSION = "0.03";
+our $VERSION = "0.04";
 
 # required
 has 'dbh', is => 'ro', required => 1;
@@ -460,7 +460,7 @@ Valid C<%params>:
 
 =over
 
-=item dbh B<(required)
+=item dbh B<(required)>
 
 Existing L<DBI> database handle. See L</connect>.
 
