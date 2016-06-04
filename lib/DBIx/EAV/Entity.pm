@@ -428,7 +428,7 @@ __END__
 
 =head1 NAME
 
-DBIx::EAV::Entity - Represents an instance of a type of entity.
+DBIx::EAV::Entity - Represents an entity record.
 
 =head1 SYNOPSIS
 

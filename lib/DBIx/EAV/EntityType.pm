@@ -286,7 +286,7 @@ __END__
 
 =head1 NAME
 
-DBIx::EAV::EntityType - An entity type. Its attributes and relationships.
+DBIx::EAV::EntityType - An entity definition. Its attributes and relationships.
 
 =head1 SYNOPSIS
 

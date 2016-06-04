@@ -22,11 +22,10 @@ has 'table_prefix', is => 'ro', default => 'eav_';
 has 'tenant_id', is => 'ro';
 has 'data_types', is => 'ro', default => sub { [qw/ int decimal varchar text datetime bool /] };
 has 'static_attributes', is => 'ro', default => sub { [] };
-has 'default_data_type', is => 'ro', default => 'varchar';
-has 'id_type', is => 'ro', default => 'bigint';
+has 'id_type', is => 'ro', default => 'int';
 
 has 'translator', is => 'ro', init_arg => undef, lazy => 1, builder => 1;
-has '_tables', is => 'ro', default => sub { {} };
+has '_tables', is => 'ro', init_arg => undef, default => sub { {} };
 
 
 sub BUILD {
@@ -95,6 +94,10 @@ sub _build_sqlt_schema {
         type_hierarchy => {
             columns => [qw/ parent_type_id child_type_id /],
             pk => [qw/ parent_type_id child_type_id /],
+            fk => {
+                parent_type_id => { table => 'entity_types', cascade_delete => $self->database_cascade_delete },
+                child_type_id  => { table => 'entity_types', cascade_delete => $self->database_cascade_delete },
+            }
         },
 
         map {
@@ -293,30 +296,194 @@ instantiate an object of this class directly.
 
 =head2 data_types
 
+=over
+
+=item Default: C<[qw/ int decimal varchar text datetime bool /]>
+
+=back
+
 Arrayref of SQL data types that will be available to entity attributes. DBIx::EAV
 uses one value table for each data type listed here. See L<DBIx::EAV::Schema/deploy>.
 
+=head2 static_attributes
+
+=over
+
+=item Default: C<[]>
+
+Arrayref of column definitions which will be available as static attributes for
+all entities. A column definition is a string in the form of
+C<"$col_name:$data_type:$data_size:$default_value"> or a hashref suitable for
+L<SQL::Translator::Schema::Table/add_field>.
+
+Example defining a C<slug VARCHAR(255)> and a C<is_deleted BOOL DEFAULT 0>
+attributes. Note that in the definition of C<in_deleted> we wanted to specify
+the C<$default_value> but not the C<$data_size> field.
+
+    static_attributes => [qw/ slug:varchar:255 is_deleted:bool::0 /]
+
+=back
+
+=head2 table_prefix
+
+=over
+
+=item Default: C<"eav_">
+
+=back
+
+Prefix added to our tables names to form the real database table name.
+See L</TABLES>.
+
+=head2 database_cascade_delete
+
+=over
+
+=item Default: C<1>
+
+=back
+
+When enabled, entities delete operations (via L<DBIx::EAV::Entity/delete> or
+L<DBIx::EAV::ResultSet/delete>) are accomplished through a single C<DELETE> SQL command.
+Also instructs L</deploy> to create the proper C<ON DELETE CASCADE> constraints.
+See L</"CASCADE DELETE">.
+
+=head2 tenant_id
+
+=over
+
+=item Default: C<undef>
+
+=back
+
+Setting this parameter enables the multi-tenancy feature.
+
+=head2 id_type
+
+=over
+
+=item Default: C<"int">
+
+=back
+
+Data type used by L</deploy> for the C<PRIMARY KEY> ('id') and C<FOREIGN KEY> ('*_id') columns.
+
+
 =head1 TABLES
 
-This section describes the required tables and columns for the EAV system.
+This section describes the tables used by L<DBIx::EAV>.
 
 =head2 entity_types
 
-This table stores all entities. All columns of of this table are presented as
-static attributes for all entity types. So you can add any number of columns in
-addition to the required ones.
+=over
+
+=item Columns: id, tenant_id?, name:varchar:255
+
+=item Primary Key: id
+
+=item Index: tenant_id?
+
+=item Unique: name
+
+=back
 
 =head2 attributes
 
+=over
+
+=item Columns: id, entity_type_id, name:varchar:255, data_type:varchar:64
+
+=item Primary Key: id
+
+=item Foreign Key: entity_type_id -> L</entity_types>
+
+=back
+
 =head2 relationships
+
+=over
+
+=item Columns: id, name:varchar:255, left_entity_type_id, right_entity_type_id, is_has_one:bool::0, is_has_many:bool::0, is_many_to_many:bool::0
+
+=item Primary Key: id
+
+=item Foreign Key: left_entity_type_id -> L</entity_types>
+
+=item Foreign Key: right_entity_type_id -> L</entity_types>
+
+=item Unique: left_entity_type_id, name
+
+=back
+
+Stores the relationships definition between L<entity types|/entity_types>.
+See L<DBIx::EAV::Manual/RELATIONSHIPS>.
 
 =head2 type_hierarchy
 
+=over
+
+=item Columns: parent_type_id, child_type_id
+
+=item Primary Key: parent_type_id, child_type_id
+
+=item Foreign Key: parent_type_id -> L</entity_types>
+
+=item Foreign Key: child_type_id -> L</entity_types>
+
+=back
+
+Stores the type -> subtype relationship. See L</"TYPE INHERITANCE">.
+
 =head2 entities
+
+=over
+
+=item Columns: id, entity_type_id, (L</static_attributes>)?
+
+=item Primary Key: id
+
+=item Foreign Key: entity_type_id -> L</entity_types>
+
+=back
+
+Stores the main entities rows, which by default contain only the C<id> and
+C<entity_type_id> columns. Any defined L</static_attributes> are also added as
+real columns of this table. This is a very "tall and skinny" table, tipical of EAV
+systems.
 
 =head2 entity_relationships
 
-=head2 <data_type>_values
+=over
+
+=item Columns: relationship_id, left_entity_id, right_entity_id
+
+=item Primary Key: id
+
+=item Foreign Key: left_entity_id -> L</entitites> (ON DELETE CASCADE)
+
+=item Foreign Key: right_entity_id -> L</entitites> (ON DELETE CASCADE)
+
+=back
+
+Stores the actual relationship links between L</entities>.
+
+=head2 values
+
+=over
+
+=item Columns: entity_id, attribute_id, value
+
+=item Primary Key: entity_id, attribute_id
+
+=item Foreign Key: entity_id -> L</entitites> (ON DELETE CASCADE)
+
+=item Foreign Key: attribute_id -> L</attributes>
+
+=back
+
+Stores the actual attributes values. One table named
+C< $table_prefix . $data_type . "_value" > is created for each data type listed
+in L</data_types>.
 
 =head1 METHODS
 
@@ -327,8 +494,6 @@ addition to the required ones.
 Returns a L<DBIx::EAV::Table> representing the table $name.
 
 =head2 dbh_do
-
-=head2 data_types
 
 =head2 has_data_type
 
@@ -349,6 +514,27 @@ used.
 =head2 db_driver_name
 
 Shortcut for C<< $self->dbh->{Driver}{Name} >>.
+
+=head1 CASCADE DELETE
+
+Since a single L<entity|DBIx::EAV::Entity>'s data is spread over several value
+tables, we can't just delete the entity in a single SQL C<DELETE> command.
+We must first send a C<DELETE> for each of those value tables, and one more for
+the L</entity_relationships> table. If an entity has attributes of 4 data types,
+and has any relationship defined, a total of 6 (six!!) C<DELETE> commands will
+be needed to delete a single entity. Four to the L</values> tables, one to the
+L</entity_relationships> and one for the actual L</entities> table).
+
+Those extra C<DELETE> commands can be avoided by using database-level
+C<ON DELETE CASCADE> for the references from the B<values> and
+B<entity_relationships> tables to the B<entities> table.
+
+The current DBIx::EAV implementation can handle both situations, but defaults
+to database-level cascade delete. See L</database_cascade_delete> option.
+
+I'll probably drop support for no database-level cascade delete in the future...
+if no one points otherwise.
+
 
 =head1 LICENSE
 
