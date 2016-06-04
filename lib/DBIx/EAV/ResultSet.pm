@@ -102,9 +102,9 @@ sub delete {
     # support delete with joins.
     # Better solution welcome.
     return $self->delete_all if
-        $self->eav->db_driver_name eq 'SQLite';
+        $self->eav->schema->db_driver_name eq 'SQLite';
 
-    unless ($eav->database_cascade_delete) {
+    unless ($eav->schema->database_cascade_delete) {
 
         # delete links by relationship id
         my @ids = map { $_->{id} } $type->relationships;

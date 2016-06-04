@@ -393,7 +393,7 @@ sub delete {
         }
     }
 
-    unless ($eav->database_cascade_delete) {
+    unless ($eav->schema->database_cascade_delete) {
 
         # delete relationship links
         $eav->table('entity_relationships')->delete([

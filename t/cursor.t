@@ -17,7 +17,7 @@ my $eav = DBIx::EAV->new(
     static_attributes => [qw/ is_deleted:bool::0 is_active:bool::1 is_published:bool::1 /]
 );
 
-$eav->schema->deploy( add_drop_table => $eav->db_driver_name eq 'mysql');
+$eav->schema->deploy( add_drop_table => $eav->schema->db_driver_name eq 'mysql');
 $eav->register_types(Load(read_file("$FindBin::Bin/entities.yml")));
 
 
@@ -53,7 +53,7 @@ sub test_query {
 
     isa_ok $cursor->_sth, 'DBI::st', '_sth';
     isa_ok $bind, 'ARRAY', 'bind values array';
-    diag $sql_query;
+    # diag $sql_query;
     ok index($sql_query, 'SELECT me.id, me.entity_type_id, me.is_deleted, me.is_active, me.is_published FROM eav_entities') != -1,
         'sql query: SELECT part';
 

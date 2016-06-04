@@ -293,7 +293,7 @@ sub _parse_clause_identifier {
             unless ($parser_data->{joined}{$current_rel_alias}) {
 
                 push @{$parser_data->{joins}}, sprintf "INNER JOIN %sentity_relationships AS %s ON %s.id = %s.%s_entity_id AND %s.relationship_id = %d",
-                    $eav->table_prefix,
+                    $eav->schema->table_prefix,
                     $current_rel_alias,
                     $current_entity_alias,
                     $current_rel_alias,
@@ -336,7 +336,7 @@ sub _parse_clause_identifier {
                 unless ($parser_data->{joined}{$current_entity_alias}) {
 
                     push @{$parser_data->{joins}}, sprintf "INNER JOIN %sentities AS %s ON %s.id = %s.%s_entity_id",
-                        $eav->table_prefix,
+                        $eav->schema->table_prefix,
                         $current_entity_alias,
                         $current_entity_alias,
                         $current_rel_alias,
@@ -370,7 +370,7 @@ sub _parse_clause_identifier {
 
             unless ($parser_data->{joined}{$join_alias}) {
                 push @{$parser_data->{joins}}, sprintf "LEFT JOIN %svalue_%s AS %s ON (%s.entity_id = %s.id AND %s.attribute_id = %s)",
-                    $eav->table_prefix,
+                    $eav->schema->table_prefix,
                     $attr->{data_type},
                     $join_alias,
                     $join_alias,

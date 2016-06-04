@@ -13,7 +13,7 @@ BEGIN { use_ok 'DBIx::EAV::Table' }
 
 my $dbh = get_test_dbh;
 my $eav = DBIx::EAV->new( dbh => $dbh, tenant_id => 42 );
-$eav->schema->deploy( add_drop_table => $eav->db_driver_name eq 'mysql');
+$eav->schema->deploy( add_drop_table => $eav->schema->db_driver_name eq 'mysql');
 
 my $table = DBIx::EAV::Table->new(
     dbh => $dbh,

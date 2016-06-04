@@ -19,29 +19,33 @@ our $VERSION = "0.03";
 has 'dbh', is => 'ro', required => 1;
 
 # options
-has 'database_cascade_delete', is => 'ro', default => 0;
-has 'table_prefix', is => 'ro', default => 'eav_';
-has 'tenant_id', is => 'ro';
-has 'data_types', is => 'ro', default => sub { [qw/ int decimal varchar text datetime bool /] };
-has 'static_attributes', is => 'ro', default => sub { [] };
-has 'default_data_type', is => 'ro', default => 'varchar';
+has 'schema_config', is => 'ro', default => sub { {} };
 
 # internal
-has 'schema', is => 'ro', lazy => 1, builder => 1, init_arg => undef, handles => [qw/ table dbh_do/];
+has 'schema', is => 'ro', lazy => 1, builder => 1, init_arg => undef, handles => [qw/ table dbh_do /];
 has '_types', is => 'ro', default => sub { {} };
 has '_types_by_id', is => 'ro', default => sub { {} };
+
+# group schema_config params
+around BUILDARGS => sub {
+    my ( $orig, $class, @args ) = @_;
+    my $params = @args == 1 && ref $args[0] ? $args[0] : { @args };
+    my $schema_config = delete $params->{schema_config} || {};
+
+    my @schema_params = grep { exists $params->{$_} } qw/
+        tenant_id         data_types   database_cascade_delete static_attributes
+        table_prefix      id_type      default_data_type
+    /;
+
+    @{$schema_config}{@schema_params} = delete @{$params}{@schema_params};
+
+    $class->$orig(%$params, schema_config => $schema_config);
+};
 
 
 sub _build_schema {
     my $self = shift;
-
-    DBIx::EAV::Schema->new(
-        dbh          => $self->dbh,
-        tenant_id    => $self->tenant_id,
-        table_prefix => $self->table_prefix,
-        data_types   => $self->data_types,
-        static_attributes => $self->static_attributes
-    )
+    DBIx::EAV::Schema->new(%{$self->schema_config}, dbh => $self->dbh);
 }
 
 sub connect {
@@ -58,20 +62,6 @@ sub connect {
         or die $DBI::errstr;
 
     $class->new($constructor_params);
-}
-
-
-sub db_driver_name {
-    shift->dbh->{Driver}{Name};
-}
-
-
-sub has_data_type {
-    my ($self, $name) = @_;
-    foreach (@{$self->data_types}) {
-        return 1 if $_ eq $name;
-    }
-    0;
 }
 
 
@@ -204,7 +194,7 @@ sub _register_entity {
             my ($name, $type) = split ':', $attr_spec;
             $attr_spec = {
                 name => $name,
-                type => $type || $self->default_data_type
+                type => $type || $self->schema->default_data_type
             };
         }
 
@@ -228,10 +218,10 @@ sub _register_entity {
             my %data = %$attr_spec;
 
             $data{entity_type_id} = $type->{id};
-            $data{data_type} = delete($data{type}) || $self->default_data_type;
+            $data{data_type} = delete($data{type}) || $self->schema->default_data_type;
 
             die sprintf("Attribute '%s' has unknown data type '%s'.", $data{name}, $data{data_type})
-                unless $self->has_data_type($data{data_type});
+                unless $self->schema->has_data_type($data{data_type});
 
             $attributes->insert(\%data);
             $attr = $attributes->select_one(\%data);
@@ -460,13 +450,32 @@ through SELECT queries.
 
 =head2 new
 
+=over
+
+=item Arguments: %params
+
+=back
+
+Valid C<%params>:
+
+=over
+
+=item dbh B<(required)
+
+Existing L<DBI> database handle. See L</connect>.
+
+=item schema_config
+
+Hashref of options used to instantiate our L<DBIx::EAV::Schema>.
+See L<DBIx::EAV::Schema/"CONSTRUCTOR OPTIONS">.
+
+=back
+
 =head2 connect
 
 =over
 
 =item Arguments: $dsn, $user, $pass, $attrs, $constructor_params
-
-=item Return Value: $eav
 
 =back
 
@@ -536,12 +545,6 @@ Returns the L<DBIx::EAV::Schema> instance representing the physical database sch
 
 Shortcut for C<< ->schema->table >>.
 
-=head2 data_types
-
-Returns an arrayref of data types known to the system. See L</new>.
-
-=head2 has_data_type
-
 =over
 
 =item Arguments: $name
@@ -549,10 +552,6 @@ Returns an arrayref of data types known to the system. See L</new>.
 =back
 
 Returns true if the data type C<$name> exists. See L</data_types>.
-
-=head2 db_driver_name
-
-Shortcut for C<< $self->dbh->{Driver}{Name} >>.
 
 =head2 dbh_do
 

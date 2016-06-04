@@ -29,7 +29,7 @@ sub test_create_tables {
     like $schema->get_ddl, qr/CREATE TABLE/, 'get_dll()';
     like $schema->get_ddl('JSON'), qr/SQL::Translator::Producer::JSON/, 'get_dll("JSON")';
 
-    $eav->schema->deploy( add_drop_table => $eav->db_driver_name eq 'mysql' );
+    $eav->schema->deploy( add_drop_table => $eav->schema->db_driver_name eq 'mysql' );
 
     my $check_sqlt = SQL::Translator->new(
         parser => 'DBI',
@@ -39,9 +39,9 @@ sub test_create_tables {
     );
 
     $check_sqlt->translate;
-    ok $check_sqlt->schema->get_table($eav->table_prefix.$_), "table '$_' created"
+    ok $check_sqlt->schema->get_table($eav->schema->table_prefix.$_), "table '$_' created"
         for (qw/ entity_types entities attributes relationships entity_relationships /,
-             map { "value_$_" } @{$eav->data_types}
+             map { "value_$_" } @{$eav->schema->data_types}
             );
 }
 
@@ -50,7 +50,7 @@ sub test_register_types {
 
     my $schema = Load(read_file("$FindBin::Bin/entities.yml"));
 
-    is $eav->has_data_type('int'), 1, 'has_data_type';
+    is $eav->schema->has_data_type('int'), 1, 'has_data_type';
 
     $eav->register_types($schema);
 
@@ -62,7 +62,7 @@ sub test_register_types {
     is $artist->{name}, 'Artist', 'Artist type rgistered';
     is $cd->{name}, 'CD', 'CD type rgistered';
     is $track->{name}, 'Track', 'Track type rgistered';
-    is $track->{tenant_id}, $eav->tenant_id, 'type tenant_id';
+    is $track->{tenant_id}, $eav->schema->tenant_id, 'type tenant_id';
 
     # attributes
     my $name_attr = $dbh->selectrow_hashref(sprintf 'SELECT * from eav_attributes WHERE name = "name" AND entity_type_id = %d', $artist->{id});

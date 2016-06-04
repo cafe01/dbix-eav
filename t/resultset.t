@@ -13,7 +13,7 @@ use DBIx::EAV;
 
 
 my $eav = DBIx::EAV->new( dbh => get_test_dbh(), tenant_id => 42 );
-$eav->schema->deploy( add_drop_table => $eav->db_driver_name eq 'mysql');
+$eav->schema->deploy( add_drop_table => $eav->schema->db_driver_name eq 'mysql');
 $eav->register_types(Load(read_file("$FindBin::Bin/entities.yml")));
 
 
@@ -25,7 +25,7 @@ test_retrieval();
 test_count();
 SKIP: {
     skip 'rs->delete() not supported on SQLite', 2
-        if $eav->db_driver_name eq 'SQLite';
+        if $eav->schema->db_driver_name eq 'SQLite';
     test_delete();
 };
 test_delete_all();

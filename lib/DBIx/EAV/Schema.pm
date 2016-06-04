@@ -16,13 +16,26 @@ my %driver_to_producer = (
 
 
 has 'dbh', is => 'ro', required => 1;
-has 'table_prefix', is => 'ro', required => 1;
-has 'data_types', is => 'ro', required => 1;
+
+has 'database_cascade_delete', is => 'ro', default => 1;
+has 'table_prefix', is => 'ro', default => 'eav_';
 has 'tenant_id', is => 'ro';
-has 'translator', is => 'ro', init_arg => undef, lazy => 1, builder => 1;
-has 'id_field_type', is => 'ro', default => 'bigint';
+has 'data_types', is => 'ro', default => sub { [qw/ int decimal varchar text datetime bool /] };
 has 'static_attributes', is => 'ro', default => sub { [] };
+has 'default_data_type', is => 'ro', default => 'varchar';
+has 'id_type', is => 'ro', default => 'bigint';
+
+has 'translator', is => 'ro', init_arg => undef, lazy => 1, builder => 1;
 has '_tables', is => 'ro', default => sub { {} };
+
+
+sub BUILD {
+    my $self = shift;
+
+    # enable sqlite fk for cascade delete to work
+    $self->dbh_do("PRAGMA foreign_keys = ON;")
+        if $self->db_driver_name eq 'SQLite';
+}
 
 
 sub _build_translator {
@@ -74,8 +87,8 @@ sub _build_sqlt_schema {
             pk => [qw/ relationship_id left_entity_id right_entity_id /],
             fk => {
                 relationship_id => 'relationships',
-                left_entity_id  => 'entities',
-                right_entity_id => 'entities',
+                left_entity_id  => { table => 'entities', cascade_delete => $self->database_cascade_delete },
+                right_entity_id => { table => 'entities', cascade_delete => $self->database_cascade_delete },
             }
         },
 
@@ -88,7 +101,7 @@ sub _build_sqlt_schema {
             ("value_$_" => {
                 columns => [qw/ entity_id attribute_id /, 'value:'.$_],
                 fk => {
-                    entity_id    => { table => 'entities', cascade_delete => 1 },
+                    entity_id    => { table => 'entities', cascade_delete => $self->database_cascade_delete },
                     attribute_id => 'attributes'
                 }
             })
@@ -117,7 +130,7 @@ sub _build_sqlt_schema {
                 }
             };
 
-            $field_params->{data_type} = $self->id_field_type
+            $field_params->{data_type} = $self->id_type
                 if $field_params->{name} =~ /(?:^id$|_id$)/;
 
             $field_params->{is_auto_increment} = 1
@@ -237,7 +250,18 @@ sub table {
     );
 }
 
+sub has_data_type {
+    my ($self, $name) = @_;
+    foreach (@{$self->data_types}) {
+        return 1 if $_ eq $name;
+    }
+    0;
+}
 
+
+sub db_driver_name {
+    shift->dbh->{Driver}{Name};
+}
 
 
 1;
@@ -264,6 +288,13 @@ DBIx::EAV::Schema - Describes the physical EAV database schema.
 
 This class represents the physical eav database schema. Will never need to
 instantiate an object of this class directly.
+
+=head1 CONSTRUCTOR OPTIONS
+
+=head2 data_types
+
+Arrayref of SQL data types that will be available to entity attributes. DBIx::EAV
+uses one value table for each data type listed here. See L<DBIx::EAV::Schema/deploy>.
 
 =head1 TABLES
 
@@ -294,6 +325,30 @@ addition to the required ones.
     my $table = $schema->table($name);
 
 Returns a L<DBIx::EAV::Table> representing the table $name.
+
+=head2 dbh_do
+
+=head2 data_types
+
+=head2 has_data_type
+
+=head2 deploy
+
+Create the eav database tables.
+
+    $eav->schema->deploy( add_drop_table => 1 );
+
+=head2 get_ddl
+
+Returns the eav schema DDL in any of the supported L<SQL::Translator> producers.
+If no argument is passed a producer for the L<current driver|/db_driver_name> is
+used.
+
+    my $mysql_ddl = $eav->schema->get_ddl('MySQL');
+
+=head2 db_driver_name
+
+Shortcut for C<< $self->dbh->{Driver}{Name} >>.
 
 =head1 LICENSE
 

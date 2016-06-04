@@ -12,7 +12,7 @@ our @EXPORT_OK = qw/ get_test_dbh empty_database read_file /;
 sub empty_database {
     my $eav = shift;
     $eav->table('entity_relationships')->delete;
-    $eav->table('value_'.$_)->delete for @{$eav->data_types};
+    $eav->table('value_'.$_)->delete for @{$eav->schema->data_types};
     $eav->table('entities')->delete;
 }
 
