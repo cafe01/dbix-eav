@@ -2,9 +2,13 @@ Revision history for Perl extension DBIx-EAV
 
 {{$NEXT}}
 
+    - renamed option 'default_data_type' to 'default_attribute_type'
+    - added tests for multi-tenancy disable mode
+    - improved docs
+
 0.04 2016-06-04T11:31:14Z
 
-    - constructor param 'schema_config' replaces all schema-config-related params    
+    - constructor param 'schema_config' replaces all schema-config-related params
     - Schema now enables foreign keys for SQLite on BUILD
     - fixed constraints from 'entity_relationships' to 'entities' table
     - moved methods 'db_driver_name' and 'has_data_type' to Schema.pm

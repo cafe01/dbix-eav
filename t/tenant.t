@@ -27,5 +27,17 @@ diag "tenant 2";
 $eav = DBIx::EAV->new( dbh => $dbh, tenant_id => 2 );
 $eav->register_types($eav_schema);
 
-
 isnt $t1artist->id, $eav->type('Artist')->id, 'each tenant gets its own types';
+
+
+# no tenant
+$eav = DBIx::EAV->new( dbh => $dbh );
+$eav->schema->deploy( add_drop_table => $eav->schema->db_driver_name eq 'mysql');
+$eav->register_types($eav_schema);
+
+
+my $artist = $eav->type('Artist');
+ok $eav->type('Artist'), 'no tenant - type registered';
+
+is_deeply $dbh->selectrow_hashref('SELECT * from eav_entity_types WHERE id = '.$artist->id),
+    { id => $artist->id, name => 'Artist' }, 'no tenant - type row';
