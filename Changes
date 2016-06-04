@@ -2,6 +2,8 @@ Revision history for Perl extension DBIx-EAV
 
 {{$NEXT}}
 
+0.05 2016-06-04T14:12:15Z
+
     - renamed option 'default_data_type' to 'default_attribute_type'
     - added tests for multi-tenancy disable mode
     - improved docs
