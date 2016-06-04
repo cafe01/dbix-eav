@@ -2,6 +2,7 @@
 
 use strict;
 use Test::More 'no_plan';
+use Test::Exception;
 use FindBin;
 use lib 'lib';
 use lib "$FindBin::Bin/lib";
@@ -18,6 +19,8 @@ my $eav = DBIx::EAV->new( dbh => $dbh, tenant_id => 42 );
 test_create_tables();
 test_register_types();
 test_entity_type();
+
+test_load_types();
 
 
 sub test_create_tables {
@@ -61,7 +64,7 @@ sub test_register_types {
 
     is $artist->{name}, 'Artist', 'Artist type rgistered';
     is $cd->{name}, 'CD', 'CD type rgistered';
-    is $track->{name}, 'Track', 'Track type rgistered';
+    is $track->{name}, 'Track', 'Track type registered';
     is $track->{tenant_id}, $eav->schema->tenant_id, 'type tenant_id';
 
     # attributes
@@ -103,6 +106,7 @@ sub test_register_types {
 
 sub test_entity_type {
 
+    dies_ok { $eav->type('Unknown') } 'type() dies for invalid types';
     my $artist = $eav->type('Artist');
     isa_ok $artist, 'DBIx::EAV::EntityType', 'entity';
 
@@ -114,4 +118,13 @@ sub test_entity_type {
     is $artist->has_own_attribute('name'), 1, 'has_own_attribute()';
     is $artist->attribute('name')->{name}, 'name', 'attribute()';
     is $artist->attribute('id')->{is_static}, 1, 'attribute() <static attr>';
+
+    ok $artist->has_relationship('cds'), 'has_relationship';
+    ok $eav->type('CD')->has_relationship('artists'), 'incoming relationship installed';
+}
+
+sub test_load_types {
+
+    $eav = DBIx::EAV->new( dbh => $dbh, tenant_id => 42 );
+    test_entity_type();
 }

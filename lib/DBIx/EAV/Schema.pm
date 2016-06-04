@@ -74,7 +74,7 @@ sub _build_sqlt_schema {
         },
 
         relationships => {
-            columns => [qw/ id name:varchar:255 left_entity_type_id right_entity_type_id is_has_one:bool::0 is_has_many:bool::0 is_many_to_many:bool::0 /],
+            columns => [qw/ id left_entity_type_id right_entity_type_id name:varchar:255 incoming_name:varchar:255 is_has_one:bool::0 is_has_many:bool::0 is_many_to_many:bool::0 /],
             fk      => { left_entity_type_id => 'entity_types', right_entity_type_id => 'entity_types' },
             unique  => {
                 name => ['left_entity_type_id','name']

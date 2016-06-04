@@ -8,11 +8,42 @@ use strictures 2;
 has 'core', is => 'ro', required => 1;
 has 'id', is => 'ro', required => 1;
 has 'name', is => 'ro', required => 1;
-has '_static_attributes', is => 'ro', init_arg => 'static_attributes', default => sub { {} };
-has '_attributes', is => 'ro', init_arg => 'attributes', default => sub { {} };
-has '_relationships', is => 'ro', init_arg => 'relationships', default => sub { {} };
 has 'parent', is => 'ro', predicate => 1;
+has '_static_attributes', is => 'ro', init_arg => undef, lazy => 1, builder => 1;
+has '_attributes', is => 'ro', init_arg => 'attributes', default => sub { {} };
+has '_relationships', is => 'ro', init_arg => undef, default => sub { {} };
 
+
+sub _build__static_attributes {
+    my $self = shift;
+    +{
+        map { $_ => {name => $_, is_static => 1} }
+            @{$self->core->table('entities')->columns}
+    }
+}
+
+sub load {
+    my ($class, $row) = @_;
+    die "load() is a class method" if ref $class;
+
+    my $self = $class->new($row);
+
+    # load attributes
+    my $sth = $self->core->table('attributes')->select({ entity_type_id => $self->id });
+
+    while (my $attr = $sth->fetchrow_hashref) {
+        $self->_attributes->{$attr->{name}} = $attr;
+    }
+
+    # load relationships
+    $sth = $self->core->table('relationships')->select({ left_entity_type_id => $self->id });
+
+    while (my $rel = $sth->fetchrow_hashref) {
+        $self->_install_relationship($rel);
+    }
+
+    $self;
+}
 
 sub parents {
     my ($self) = @_;
@@ -35,6 +66,7 @@ sub is_type {
     }
     0;
 }
+
 
 
 
@@ -182,80 +214,97 @@ sub relationships {
 
 
 sub register_relationship {
-    my ($self, $reltype, $rel) = @_;
+    my ($self, $reltype, $params) = @_;
 
-    $rel = { entity => $rel } if ref $rel ne 'HASH';
+    $params = { entity => $params } unless ref $params;
 
     die sprintf("Error: invalid %s relationship for entity '%s': missing 'entity' parameter.", $reltype, $self->name)
-        unless $rel->{entity};
+        unless $params->{entity};
 
-    my $other_entity = $self->core->type($rel->{entity});
+    my $other_entity = $self->core->type($params->{entity});
 
+    $params->{name} ||= $reltype =~ /_many$/ ? lc Lingua::EN::Inflect::PL($other_entity->name)
+                                             : lc $other_entity->name;
 
-    my %row_data = (
+    $params->{incoming_name} ||= $reltype eq 'many_to_many' ? lc Lingua::EN::Inflect::PL($self->name)
+                                                            : lc $self->name;
+
+    my %rel = (
         left_entity_type_id  => $self->id,
         right_entity_type_id => $other_entity->id,
-        name => $rel->{name},
+        name => $params->{name},
+        incoming_name => $params->{incoming_name},
         "is_$reltype" => 1
     );
 
-    # build rel names
-    if ($reltype eq 'has_many') {
-
-        $row_data{name} ||= lc Lingua::EN::Inflect::PL($rel->{entity});
-        $rel->{incoming_name} = lc $self->name;
-    }
-    elsif ($reltype eq 'many_to_many') {
-
-        $row_data{name} ||= lc Lingua::EN::Inflect::PL($rel->{entity});
-        $rel->{incoming_name} = lc Lingua::EN::Inflect::PL($self->name);
-    }
-    elsif ($reltype eq 'has_one') {
-
-        $row_data{name} ||= lc $rel->{entity};
-        $rel->{incoming_name} = lc $self->name;
-    }
-    else {
-        die "Invalid relationship type '$reltype'.";
-    }
-
+    # update or insert
     my $relationships_table = $self->core->table('relationships');
-    my $row = $relationships_table->select_one(\%row_data);
+    my $existing_rel = $relationships_table->select_one({
+        left_entity_type_id => $self->id,
+        name => $rel{name},
+    });
 
-    if ($row) {
-        # update description
+    if ($existing_rel) {
+
+        $rel{id} = $existing_rel->{id};
+
+        # update
+        my %changed_cols = map { $_ => $rel{$_} }
+                           grep { $rel{$_} ne $existing_rel->{$_} }
+                           keys %rel;
+
+        $relationships_table->update(\%changed_cols, { id => $rel{id} })
+            if keys %changed_cols > 0;
     }
     else {
-        my $id = $relationships_table->insert(\%row_data);
-        $row = $relationships_table->select_one({ id => $id });
-        die sprintf("Database error while registering belongs_to relationship '%s' for entity '%s'", $rel->{name}, $self->name)
-            unless $row;
+        my $id = $relationships_table->insert(\%rel);
+        die sprintf("Database error while registering  '%s -> %s' relationship.", $self->name, $rel{name})
+            unless $id;
+
+        $rel{id} = $id;
     }
 
     # install relationship
-    $row->{entity} = $other_entity->name;
-    $row->{incoming_name} = $rel->{incoming_name};
-    $self->_install_relationship($row->{name}, $row);
-
-    if ($rel->{incoming_name}) {
-        my %their_rel = (%$row, entity => $self->name, is_right_entity => 1);
-        $their_rel{incoming_name} = $their_rel{name}; # swap names
-        $their_rel{name} = $rel->{incoming_name};
-        $other_entity->_install_relationship($rel->{incoming_name}, \%their_rel);
-    }
-
-
-    $row;
+    $self->_install_relationship(\%rel);
 }
 
 sub _install_relationship {
-    my ($self, $relname, $rel) = @_;
+    my ($self, $rel) = @_;
+    my $relname = $rel->{name};
 
     die sprintf("Entity '%s' already has relationship '%s'.", $self->name, $relname)
-        if exists $self->_relationships->{$relname};
+        if $self->has_relationship($relname);
 
-    $self->_relationships->{$relname} = $rel;
+    my $other_entity = $self->core->type_by_id($rel->{right_entity_type_id});
+
+    # install our side
+    $self->_relationships->{$relname} = {
+        %$rel,
+        entity => $other_entity->name
+    };
+
+    # install their side
+    die sprintf("Entity '%s' already has relationship '%s'.", $self->name, $relname)
+        if $other_entity->has_relationship($rel->{incoming_name});
+
+    $other_entity->_relationships->{$rel->{incoming_name}} = {
+        %$rel,
+        entity => $self->name,
+        is_right_entity => 1,
+        name => $rel->{incoming_name},
+        incoming_name => $rel->{name},
+    };
 }
+
+
+# sub _install_relationship {
+#     my ($self, $relname, $rel) = @_;
+#
+#     die sprintf("Entity '%s' already has relationship '%s'.", $self->name, $relname)
+#         if exists $self->_relationships->{$relname};
+#
+#     $self->_relationships->{$relname} = $rel;
+# }
 
 
 

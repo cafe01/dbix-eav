@@ -2,6 +2,12 @@ Revision history for Perl extension DBIx-EAV
 
 {{$NEXT}}
 
+    - implemented DBIx::EAV::EntityType load() class method
+    - type() can now load previously registered types
+    - improved relationship registration/installation
+    - added column 'incoming_name' to table relationships
+    - fixed tenant.t
+
 0.05 2016-06-04T14:12:15Z
 
     - renamed option 'default_data_type' to 'default_attribute_type'

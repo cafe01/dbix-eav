@@ -31,6 +31,7 @@ isnt $t1artist->id, $eav->type('Artist')->id, 'each tenant gets its own types';
 
 
 # no tenant
+$dbh = get_test_dbh();
 $eav = DBIx::EAV->new( dbh => $dbh );
 $eav->schema->deploy( add_drop_table => $eav->schema->db_driver_name eq 'mysql');
 $eav->register_types($eav_schema);

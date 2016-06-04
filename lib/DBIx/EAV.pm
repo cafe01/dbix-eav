@@ -64,29 +64,35 @@ sub connect {
     $class->new($constructor_params);
 }
 
-
-sub has_type {
-    my ($self, $name) = @_;
-    exists $self->_types->{$name};
-}
-
-
 sub type {
-    my ($self, $name) = @_;
-    confess "Entity '$name' does not exist."
-        unless exists $self->_types->{$name};
+    my ($self, $value) = @_;
 
-    $self->_types->{$name};
+    return $self->_types->{$value}
+        if exists $self->_types->{$value};
+
+    $self->_load_type('name', $value)
 }
 
 sub type_by_id {
-    my ($self, $id) = @_;
-    confess "Can't find type by id '$id'"
-        unless exists $self->_types_by_id->{$id};
+    my ($self, $value) = @_;
 
-    $self->_types_by_id->{$id};
+    return $self->_types_by_id->{$value}
+        if exists $self->_types_by_id->{$value};
+
+    $self->_load_type('id', $value)
 }
 
+sub _load_type {
+    my ($self, $field, $value) = @_;
+
+    my $type_row = $self->table('entity_types')->select_one({ $field => $value })
+        or confess "EntityType '$field=$value' does not exist.";
+
+    my $type = DBIx::EAV::EntityType->load({ %$type_row, core => $self});
+    $self->_types->{$type->name} = $type;
+    $self->_types_by_id->{$type->id} = $type;
+    $type;
+}
 
 sub resultset {
     my ($self, $name) = @_;
@@ -109,7 +115,7 @@ sub register_types {
     # create or update each entity type on database
     foreach my $name (@new_types) {
         next if exists $self->_types->{$name};
-        $self->_register_entity($name, $schema->{$name}, $schema);
+        $self->_register_entity_type($name, $schema->{$name}, $schema);
     }
 
     # register relationships
@@ -134,7 +140,7 @@ sub register_types {
 }
 
 
-sub _register_entity {
+sub _register_entity_type {
     my ($self, $name, $spec, $schema) = @_;
 
     # parent type first
@@ -146,7 +152,7 @@ sub _register_entity {
             die "Unknown type '$spec->{extends}' specified in 'extents' option for type '$name'."
                 unless exists $schema->{$spec->{extends}};
 
-            $parent_type = $self->_register_entity($spec->{extends}, $schema->{$spec->{extends}}, $schema);
+            $parent_type = $self->_register_entity_type($spec->{extends}, $schema->{$spec->{extends}}, $schema);
         }
     }
 
@@ -181,7 +187,6 @@ sub _register_entity {
     # update or create attributes
     my $attributes = $self->table('attributes');
     my %static_attributes = map { $_ => {name => $_, is_static => 1} } @{$self->table('entities')->columns};
-    $type->{static_attributes} = \%static_attributes;
     $type->{attributes} = {};
 
     my %inherited_attributes = $parent_type ? map { $_->{name} => $_ } $parent_type->attributes( no_static => 1 )
@@ -373,7 +378,7 @@ borrowed from L<DBIx::Class>, so its (API is) already stable.
 
 =back
 
-Valid C<%params>:
+Valid C<%params> keys:
 
 =over
 
@@ -392,12 +397,12 @@ See L<DBIx::EAV::Schema/"CONSTRUCTOR OPTIONS">.
 
 =over
 
-=item Arguments: $dsn, $user, $pass, $attrs, $constructor_params
+=item Arguments: $dsn, $user, $pass, $attrs, \%constructor_params
 
 =back
 
 Connects to the database via C<< DBI->connect($dsn, $user, $pass, $attrs) >>
-then returns a new instance via L</new>.
+then returns a new instance via L<new(\%constructor_params)|/new>.
 
 =head1 METHODS
 
@@ -411,10 +416,19 @@ then returns a new instance via L</new>.
 
 =back
 
-Register entity types specified in \%schema, where each key is the name of the
-entity and the value is a hashref describing its attributes and relationships.
-Described in detail in L<DBIx::EAV::EntityType/"ENTITY DEFINITION">.
+Registers entity types specified in \%schema, where each key is the name of the
+L<type|DBIx::EAV::EntityType> and the value is a hashref describing its
+attributes and relationships. Fully described in
+L<DBIx::EAV::EntityType/"ENTITY DEFINITION">.
 
+This method ignores types already installed, allowing code that registers types
+to live close to the code that actually uses the types.
+
+When registering types already registered, additional attributes and
+relationships are registered accordingly. To delete attributes and values see
+L<DBIx::EAV::EntityType/PRUNING>.
+
+See L<"INSTALLED VS REGISTERED TYPES">.
 
 =head2 resultset
 
@@ -439,10 +453,13 @@ L<type|DBIx::EAV::EntityType> C<$name>.
 
 =back
 
-Returns the L<DBIx::EAV::EntityType> instance for type C<$name>. Dies if type
-is not installed.
+Returns the L<DBIx::EAV::EntityType> instance for type C<$name>. If the type
+instance is not already installed in this DBIx::EAV instance, we try to load
+the type definition from the database. Dies if type is not registered.
 
     my $types = $eav->type('Artist');
+
+See L<"INSTALLED VS REGISTERED TYPES">.
 
 =head2 has_type
 
@@ -485,6 +502,8 @@ Set environment variable C<DBIX_EAV_TRACE> to 1 to get statements printed to
 C<STDERR>.
 
 =back
+
+=head1 INSTALLED VS REGISTERED TYPES
 
 =head1 LICENSE
 
