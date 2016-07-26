@@ -2,6 +2,8 @@ Revision history for Perl extension DBIx-EAV
 
 {{$NEXT}}
 
+0.07 2016-07-26T22:36:26Z
+
     - improved schema deployment, now using a version table
       - added method 'version_table'
       - added method 'version_table_is_installed'

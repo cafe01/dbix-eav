@@ -108,7 +108,7 @@ DBIx::EAV - Entity-Attribute-Value data modeling (aka 'open schema') for Perl
 # DESCRIPTION
 
 An implementation of Entity-Attribute-Value data modeling with support for
-entity relationships and multi-tenancy.
+entity relationships and multi-tenancy. See [DBIx::EAV::Manual](https://metacpan.org/pod/DBIx::EAV::Manual).
 
 # ALPHA STAGE
 
@@ -192,15 +192,11 @@ Returns true if [entity type](https://metacpan.org/pod/DBIx::EAV::EntityType) `$
 
 ## schema
 
-Returns the [DBIx::EAV::Schema](https://metacpan.org/pod/DBIx::EAV::Schema) instance representing the physical database schema.
+Returns the [DBIx::EAV::Schema](https://metacpan.org/pod/DBIx::EAV::Schema) instance representing the physical database tables.
 
 ## table
 
 Shortcut for `->schema->table`.
-
-- Arguments: $name
-
-Returns true if the data type `$name` exists. See ["data\_types"](#data_types).
 
 ## dbh\_do
 
