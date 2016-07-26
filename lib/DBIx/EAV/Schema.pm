@@ -9,6 +9,8 @@ use constant {
     SQL_DEBUG => $ENV{DBIX_EAV_TRACE}
 };
 
+our $SCHEMA_VERSION = 1;
+
 
 my %driver_to_producer = (
     mysql => 'MySQL'
@@ -40,12 +42,8 @@ sub BUILD {
 sub _build_translator {
     my $self = shift;
 
-    my $sqlt = SQL::Translator->new(
-        from => sub { $self->_build_sqlt_schema($_[0]->schema) }
-    );
-
-    # translate asap to load our schema
-    $sqlt->translate;
+    my $sqlt = SQL::Translator->new;
+    $self->_build_sqlt_schema($sqlt->schema);
 
     $sqlt;
 }
@@ -190,6 +188,8 @@ sub _build_sqlt_schema {
 }
 
 
+sub version { $SCHEMA_VERSION }
+
 sub get_ddl {
     my ($self, $producer) = @_;
 
@@ -199,11 +199,74 @@ sub get_ddl {
         $producer = $driver_to_producer{$driver} || $driver;
     }
 
-
     $self->translator->producer($producer);
     $self->translator->translate;
 }
 
+sub version_table {
+    my $self = shift;
+
+    DBIx::EAV::Table->new(
+        dbh       => $self->dbh,
+        name      => $self->table_prefix . 'schema_versions',
+        columns   => [qw/ id version ddl /]
+    );
+}
+
+sub version_table_is_installed {
+    my $self = shift;
+
+    my $success = 0;
+
+    eval {
+        $self->dbh_do(sprintf 'SELECT COUNT(*) FROM %s', $self->table_prefix . 'schema_versions');
+        $success = 1;
+    };
+
+    $success;
+}
+
+sub install_version_table {
+    my $self = shift;
+
+    my $sqlt = SQL::Translator->new;
+    my $table = $sqlt->schema->add_table( name => $self->version_table->name );
+
+    $table->add_field(
+        name => 'id',
+        data_type => 'INTEGER',
+        is_auto_increment => 1
+    );
+
+    $table->add_field(
+        name => 'version',
+        data_type => 'INTEGER'
+    );
+
+    $table->add_field(
+        name => 'ddl',
+        data_type => 'TEXT'
+    );
+
+    $table->primary_key('id');
+
+    # execute ddl
+    my $driver = $self->dbh->{Driver}{Name};
+    $sqlt->producer($driver_to_producer{$driver} || $driver);
+
+    $self->dbh_do($_)
+        for grep { /\w/ } split ';', $sqlt->translate;
+
+}
+
+sub installed_version {
+    my $self = shift;
+    my $table = $self->version_table;
+    my ($rv, $sth) = $self->dbh_do(sprintf 'SELECT * FROM %s ORDER BY id DESC', $table->name);
+    my $row = $sth->fetchrow_hashref;
+    return unless $row;
+    $row->{version};
+}
 
 sub deploy {
     my $self = shift;
@@ -212,8 +275,24 @@ sub deploy {
     $self->translator->$_($options{$_})
         for keys %options;
 
+    # deploy version table
+    $self->install_version_table
+        unless $self->version_table_is_installed;
+
+    # check we already installed this version
+    my $version_table = $self->version_table;
+    return if $version_table->select_one({ version => $self->version });
+
+    # deploy ddl
+    my $ddl = $self->get_ddl;
     $self->dbh_do($_)
-        for grep { /\w/ } split ';', $self->get_ddl;
+        for grep { /\w/ } split ';', $ddl;
+
+    # create version record
+    $version_table->insert({
+        version => $self->version,
+        ddl => 'DDL'
+    });
 }
 
 
@@ -240,7 +319,7 @@ sub table {
     return $self->_tables->{$name}
         if exists $self->_tables->{$name};
 
-    my $table_schema = $self->translator->schema->get_table($self->table_prefix.$name);
+    my $table_schema = $self->translator->schema->get_table($self->table_prefix . $name);
 
     croak "Table '$name' does not exist."
         unless $table_schema;
@@ -260,7 +339,6 @@ sub has_data_type {
     }
     0;
 }
-
 
 sub db_driver_name {
     shift->dbh->{Driver}{Name};

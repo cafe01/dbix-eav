@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 use strict;
-use Test::More 'no_plan';
+use Test::More;
 use Test::Exception;
 use FindBin;
 use lib 'lib';
@@ -19,8 +19,9 @@ my $eav = DBIx::EAV->new( dbh => $dbh, tenant_id => 42 );
 test_create_tables();
 test_register_types();
 test_entity_type();
-
 test_load_types();
+
+done_testing;
 
 
 sub test_create_tables {
@@ -32,7 +33,15 @@ sub test_create_tables {
     like $schema->get_ddl, qr/CREATE TABLE/, 'get_dll()';
     like $schema->get_ddl('JSON'), qr/SQL::Translator::Producer::JSON/, 'get_dll("JSON")';
 
-    $eav->schema->deploy( add_drop_table => $eav->schema->db_driver_name eq 'mysql' );
+    is $schema->version_table_is_installed, 0, 'version_table_is_installed';
+
+    $schema->deploy( add_drop_table => $eav->schema->db_driver_name eq 'mysql' );
+
+    is $schema->version_table_is_installed, 1, 'version_table_is_installed';
+
+    is $eav->schema->deploy( add_drop_table => 0 ), undef, 'ignore deploy same version';
+
+    is $schema->installed_version, $schema->version, 'installed_version';
 
     my $check_sqlt = SQL::Translator->new(
         parser => 'DBI',
@@ -43,9 +52,24 @@ sub test_create_tables {
 
     $check_sqlt->translate;
     ok $check_sqlt->schema->get_table($eav->schema->table_prefix.$_), "table '$_' created"
-        for (qw/ entity_types entities attributes relationships entity_relationships /,
+        for (qw/ schema_versions entity_types entities attributes relationships entity_relationships /,
              map { "value_$_" } @{$eav->schema->data_types}
             );
+
+
+    my $version_table = $schema->version_table;
+    is $version_table->select_one({ id => 1 })->{version}, 1, 'version 1 row';
+
+    # deploy version 2
+    $DBIx::EAV::Schema::SCHEMA_VERSION = 2;
+
+    is $schema->version, 2;
+
+    $schema->deploy( add_drop_table => 1 );
+
+    is $schema->installed_version, $schema->version, 'installed_version';
+
+    is $version_table->select_one({ id => 2 })->{version}, 2, 'version 2 row';
 }
 
 

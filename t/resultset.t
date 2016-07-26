@@ -17,21 +17,21 @@ $eav->schema->deploy( add_drop_table => $eav->schema->db_driver_name eq 'mysql')
 $eav->register_types(Load(read_file("$FindBin::Bin/entities.yml")));
 
 
-test_common();
-test_insert();
+# test_common();
+# test_insert();
 test_pupulate();
-test_search();
-test_retrieval();
-test_count();
-SKIP: {
-    skip 'rs->delete() not supported on SQLite', 2
-        if $eav->schema->db_driver_name eq 'SQLite';
-    test_delete();
-};
-test_delete_all();
-test_related();
-test_distinct();
-test_having();
+# test_search();
+# test_retrieval();
+# test_count();
+# SKIP: {
+#     skip 'rs->delete() not supported on SQLite', 2
+#         if $eav->schema->db_driver_name eq 'SQLite';
+#     test_delete();
+# };
+# test_delete_all();
+# test_related();
+# test_distinct();
+# test_having();
 
 
 sub test_common {
