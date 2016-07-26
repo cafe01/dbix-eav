@@ -359,7 +359,7 @@ DBIx::EAV - Entity-Attribute-Value data modeling (aka 'open schema') for Perl
 =head1 DESCRIPTION
 
 An implementation of Entity-Attribute-Value data modeling with support for
-entity relationships and multi-tenancy.
+entity relationships and multi-tenancy. See L<DBIx::EAV::Manual>.
 
 =head1 ALPHA STAGE
 
@@ -473,19 +473,11 @@ Returns true if L<entity type|DBIx::EAV::EntityType> C<$name> is installed.
 
 =head2 schema
 
-Returns the L<DBIx::EAV::Schema> instance representing the physical database schema.
+Returns the L<DBIx::EAV::Schema> instance representing the physical database tables.
 
 =head2 table
 
 Shortcut for C<< ->schema->table >>.
-
-=over
-
-=item Arguments: $name
-
-=back
-
-Returns true if the data type C<$name> exists. See L</data_types>.
 
 =head2 dbh_do
 

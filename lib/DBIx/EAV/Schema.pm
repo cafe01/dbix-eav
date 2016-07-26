@@ -303,7 +303,7 @@ instantiate an object of this class directly.
 =back
 
 Arrayref of SQL data types that will be available to entity attributes. DBIx::EAV
-uses one value table for each data type listed here. See L<DBIx::EAV::Schema/deploy>.
+uses one value table for each data type listed here. See L</values> and L</deploy>.
 
 =head2 static_attributes
 
@@ -317,7 +317,7 @@ C<"$col_name:$data_type:$data_size:$default_value"> or a hashref suitable for
 L<SQL::Translator::Schema::Table/add_field>.
 
 Example defining a C<slug VARCHAR(255)> and a C<is_deleted BOOL DEFAULT 0>
-attributes. Note that in the definition of C<in_deleted> we wanted to specify
+attributes. Note that in the definition of C<is_deleted> we wanted to specify
 the C<$default_value> but not the C<$data_size> field.
 
     static_attributes => [qw/ slug:varchar:255 is_deleted:bool::0 /]
