@@ -62,6 +62,11 @@ sub inflate_entity {
 }
 
 
+{
+    no warnings;
+    *create = \&insert;
+}
+
 sub insert {
     my ($self, $data) = @_;
     $self->new_entity($data)->save;

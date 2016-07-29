@@ -1,6 +1,8 @@
 
 Artist:
   many_to_many: [CD]
+  has_many:
+      - [ compositions, Track, composer]
   attributes:
      - { name: 'name' }
      - { name: 'birth_date', type: 'datetime' }

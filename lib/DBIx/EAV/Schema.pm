@@ -262,8 +262,11 @@ sub install_version_table {
 sub installed_version {
     my $self = shift;
     my $table = $self->version_table;
-    my ($rv, $sth) = $self->dbh_do(sprintf 'SELECT * FROM %s ORDER BY id DESC', $table->name);
-    my $row = $sth->fetchrow_hashref;
+    my $row;
+    eval {
+        my ($rv, $sth) = $self->dbh_do(sprintf 'SELECT * FROM %s ORDER BY id DESC', $table->name);
+        $row = $sth->fetchrow_hashref;
+    };
     return unless $row;
     $row->{version};
 }

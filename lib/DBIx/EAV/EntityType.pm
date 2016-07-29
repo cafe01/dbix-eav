@@ -216,7 +216,18 @@ sub relationships {
 sub register_relationship {
     my ($self, $reltype, $params) = @_;
 
+    # scalar: entity
     $params = { entity => $params } unless ref $params;
+
+    # array: name => Entity [, incoming_name ]
+    if (ref $params eq 'ARRAY') {
+
+        $params = {
+            name => $params->[0],
+            entity  => $params->[1],
+            incoming_name => $params->[2],
+        };
+    }
 
     die sprintf("Error: invalid %s relationship for entity '%s': missing 'entity' parameter.", $reltype, $self->name)
         unless $params->{entity};

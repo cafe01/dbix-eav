@@ -77,6 +77,21 @@ sub test_has_many {
 
     $eav->resultset("CD")->delete;
     $eav->resultset("Track")->delete;
+
+    # test array based relationship definition Artist->compositions
+    subtest 'array-based relationship definition' => sub {
+        
+        my $rel = $eav->type('Artist')->relationship('compositions');
+        is $rel->{name}, 'compositions';
+        is $rel->{entity}, 'Track';
+        is $rel->{incoming_name}, 'composer';
+
+        $rel = $eav->type('Track')->relationship('composer');
+        is $rel->{name}, 'composer';
+        is $rel->{entity}, 'Artist';
+        is $rel->{incoming_name}, 'compositions';
+    };
+
 }
 
 
