@@ -1,15 +1,9 @@
 #!/usr/bin/perl -w
-
-use strict;
-use Test::More 'no_plan';
 use FindBin;
-use lib 'lib';
 use lib "$FindBin::Bin/lib";
-use Data::Dumper;
-use Test::DBIx::EAV qw/ get_test_dbh /;
-use DBIx::EAV;
+use Test::DBIx::EAV;
+use DBIx::EAV::Table;
 
-BEGIN { use_ok 'DBIx::EAV::Table' }
 
 my $dbh = get_test_dbh;
 my $eav = DBIx::EAV->new( dbh => $dbh, tenant_id => 42 );
@@ -30,6 +24,7 @@ test_select_one();
 test_update();
 test_delete();
 
+done_testing;
 
 sub test_insert {
 
@@ -38,7 +33,7 @@ sub test_insert {
 
     is $res, 1, 'insert return value';
 
-    is_deeply $dbh->selectrow_hashref('SELECT * from eav_entity_types WHERE id = '.$res),
+    is $dbh->selectrow_hashref('SELECT * from eav_entity_types WHERE id = '.$res),
               { id => $res, name => 'Foo', tenant_id => $table->tenant_id },
               'inserted data is there';
 
@@ -49,8 +44,8 @@ sub test_select {
 
 
     my $res = $table->select({ name => 'Foo' });
-    isa_ok $res, 'DBI::st', 'returns statement handle';
-    is_deeply $res->fetchrow_hashref, { id => 1, name => 'Foo', tenant_id => $table->tenant_id }, 'selected data';
+    isa_ok $res, 'DBI::st';
+    is $res->fetchrow_hashref, { id => 1, name => 'Foo', tenant_id => $table->tenant_id }, 'selected data';
 
 }
 
@@ -58,8 +53,8 @@ sub test_select_one {
 
 
     my $res = $table->select_one({ name => 'Foo' });
-    isa_ok $res, 'HASH', 'returns hashref';
-    is_deeply $res, { id => 1, name => 'Foo', tenant_id => $table->tenant_id }, 'found data';
+    ref_ok $res, 'HASH', 'returns hashref';
+    is $res, { id => 1, name => 'Foo', tenant_id => $table->tenant_id }, 'found data';
 
 }
 
@@ -69,7 +64,7 @@ sub test_update {
     my $res = $table->update({ name => 'FooBar' }, { id => 1});
 
     is $res, 1, 'update() rv';
-    is_deeply $dbh->selectrow_hashref('SELECT * from eav_entity_types WHERE id = 1'),
+    is $dbh->selectrow_hashref('SELECT * from eav_entity_types WHERE id = 1'),
               { id => 1, name => 'FooBar', tenant_id => $table->tenant_id },
               'updated   data is there';
 }

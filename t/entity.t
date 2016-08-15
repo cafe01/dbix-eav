@@ -1,14 +1,7 @@
 #!/usr/bin/perl -w
-
-use strict;
-use Test::More 'no_plan';
 use FindBin;
-use lib 'lib';
 use lib "$FindBin::Bin/lib";
-use Data::Dumper;
-use DBIx::EAV;
-use YAML;
-use Test::DBIx::EAV qw/ get_test_dbh read_file /;
+use Test::DBIx::EAV;
 
 my $dbh = get_test_dbh;
 
@@ -20,7 +13,7 @@ my $eav = DBIx::EAV->new(
 
 
 $eav->schema->deploy( add_drop_table => $eav->schema->db_driver_name eq 'mysql');
-$eav->register_types(Load(read_file("$FindBin::Bin/entities.yml")));
+$eav->register_types(read_yaml_file("$FindBin::Bin/entities.yml"));
 
 
 test_common();
@@ -28,11 +21,13 @@ test_save();
 test_load_attributes();
 test_delete();
 
+done_testing;
+
 sub test_common {
 
     my $bob = $eav->resultset('Artist')->new_entity({ name => 'Bob Marley' });
 
-    isa_ok $bob, 'DBIx::EAV::Entity', 'entity';
+    isa_ok $bob, 'DBIx::EAV::Entity';
     is $bob->in_storage, '', 'in_storage';
     is $bob->raw->{name}, 'Bob Marley', 'get';
     is exists $bob->raw->{'rating'}, '', 'get (undef)';
@@ -41,7 +36,7 @@ sub test_common {
     is $bob->raw->{rating}, 10, 'set($attr, $val)';
 
     $bob->set({ name => 'Robert Marley', rating => 100 });
-    is_deeply $bob->raw, { name => 'Robert Marley', rating => 100 }, 'set(\%attrs)';
+    is $bob->raw, { name => 'Robert Marley', rating => 100 }, 'set(\%attrs)';
 }
 
 sub test_save {
@@ -52,7 +47,7 @@ sub test_save {
 
     is $bob->in_storage, 1, 'in_storage';
 
-    is_deeply $dbh->selectrow_hashref('SELECT * from eav_entities WHERE id = '.$bob->id),
+    is $dbh->selectrow_hashref('SELECT * from eav_entities WHERE id = '.$bob->id),
               {
                   id => $bob->id,
                   entity_type_id => $eav->type('Artist')->id,
@@ -63,11 +58,11 @@ sub test_save {
               'entity row';
 
 
-    is_deeply $dbh->selectrow_hashref(sprintf 'SELECT value from eav_value_varchar WHERE entity_id = %d AND attribute_id = %d', $bob->id, $bob->type->attribute('name')->{id}),
+    is $dbh->selectrow_hashref(sprintf 'SELECT value from eav_value_varchar WHERE entity_id = %d AND attribute_id = %d', $bob->id, $bob->type->attribute('name')->{id}),
             { value => 'Bob Marley' },
             "'name' attribute row";
 
-    is_deeply $dbh->selectrow_hashref(sprintf 'SELECT value from eav_value_int WHERE entity_id = %d AND attribute_id = %d', $bob->id, $bob->type->attribute('rating')->{id}),
+    is $dbh->selectrow_hashref(sprintf 'SELECT value from eav_value_int WHERE entity_id = %d AND attribute_id = %d', $bob->id, $bob->type->attribute('rating')->{id}),
             { value => 10 },
             "'rating' attribute row";
 
@@ -78,7 +73,7 @@ sub test_save {
 
     is $dbh->selectrow_hashref('SELECT * from eav_entities WHERE id = '.$peter->id)->{is_published}, 0, 'create with static attrs';
 
-    is_deeply $dbh->selectrow_hashref(sprintf 'SELECT value from eav_value_varchar WHERE entity_id = %d AND attribute_id = %d', $peter->id, $peter->type->attribute('name')->{id}),
+    is $dbh->selectrow_hashref(sprintf 'SELECT value from eav_value_varchar WHERE entity_id = %d AND attribute_id = %d', $peter->id, $peter->type->attribute('name')->{id}),
             { value => 'Peter Tosh' },
             "'name' attribute row";
 
@@ -86,7 +81,7 @@ sub test_save {
     # update
     $peter->set('name', 'Peter Machintosh')->save;
 
-    is_deeply $dbh->selectrow_hashref(sprintf 'SELECT value from eav_value_varchar WHERE entity_id = %d AND attribute_id = %d', $peter->id, $peter->type->attribute('name')->{id}),
+    is $dbh->selectrow_hashref(sprintf 'SELECT value from eav_value_varchar WHERE entity_id = %d AND attribute_id = %d', $peter->id, $peter->type->attribute('name')->{id}),
             { value => 'Peter Machintosh' },
             "name updated";
 
@@ -98,7 +93,7 @@ sub test_save {
     is $dbh->selectrow_hashref(sprintf 'SELECT value from eav_value_int WHERE entity_id = %d AND attribute_id = %d', $peter->id, $peter->type->attribute('rating')->{id})->{value},
                 10, "dynamic attr updated";
 
-    is_deeply $dbh->selectrow_hashref(sprintf 'SELECT is_published, is_deleted from eav_entities WHERE id = %d', $peter->id),
+    is $dbh->selectrow_hashref(sprintf 'SELECT is_published, is_deleted from eav_entities WHERE id = %d', $peter->id),
               { is_published => 1, is_deleted => 1 },
               "static attrs updated";
 

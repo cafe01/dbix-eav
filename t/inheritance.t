@@ -1,14 +1,7 @@
 #!/usr/bin/perl -w
-
-use strict;
-use Test::More 'no_plan';
 use FindBin;
-use lib 'lib';
 use lib "$FindBin::Bin/lib";
-use Data::Dumper;
-use YAML;
-use DBIx::EAV;
-use Test::DBIx::EAV qw/ get_test_dbh read_file/;
+use Test::DBIx::EAV;
 
 
 my $eav = DBIx::EAV->new(
@@ -16,7 +9,7 @@ my $eav = DBIx::EAV->new(
     static_attributes => [qw/ is_deleted:bool::0 is_active:bool::1 is_published:bool::1 /]
 );
 $eav->schema->deploy( add_drop_table => $eav->schema->db_driver_name eq 'mysql');
-$eav->register_types(Load(read_file("$FindBin::Bin/ecommerce.yml")));
+$eav->register_types(read_yaml_file("$FindBin::Bin/ecommerce.yml"));
 
 
 my $product  = $eav->type('Product');
@@ -30,7 +23,7 @@ is $monitor->has_parent, 1, 'subtype->has_parent';
 is $monitor->parent->name, 'Product', 'subtype->parent';
 is $curved_monitor->parent->name, 'Monitor', 'subtype2->parent';
 
-is_deeply [map { $_->name } $curved_monitor->parents],
+is [map { $_->name } $curved_monitor->parents],
           [qw/ Monitor Product /], 'parents';
 
 ok $product->is_type('Product'), 'is_type';
@@ -58,7 +51,7 @@ is $curved_monitor->attribute('description')->{id}, $product->attribute('descrip
 is $curved_monitor->attribute('resolution')->{id}, $monitor->attribute('resolution')->{id}, 'child type3 shares attr1 with parent type';
 is $curved_monitor->attribute('contrast_ratio')->{id}, $monitor->attribute('contrast_ratio')->{id}, 'child type3 shares attr2 with parent type';
 
-is_deeply [sort $harddisk->attributes( names => 1 )],
+is [sort $harddisk->attributes( names => 1 )],
           [qw/ capacity description entity_type_id id is_active is_deleted is_published name price rpm /],
           'attributes( names => 1)';
 
@@ -100,14 +93,14 @@ $eav->resultset('FancyMonitor')->populate([
 # find subproducts
 my $products = $eav->resultset('Product');
 my @result = $products->search({ price => { '>' => 200 } }, { order_by => 'name', subtype_depth => 1 })->all;
-is_deeply [map { $_->get('name') } @result], [qw/ HardDisk3 Monitor3 /], 'find subtypes';
+is [map { $_->get('name') } @result], [qw/ HardDisk3 Monitor3 /], 'find subtypes';
 is $result[0]->type->name, 'HardDisk', 'result item0 inflated to correct subtype';
 
 @result = $products->search({ price => { '>' => 200 } }, { order_by => 'name', subtype_depth => 2 })->all;
-is_deeply [map { $_->get('name') } @result], [qw/ CurvedMonitor3 HardDisk3 Monitor3 /], 'find subtypes depth 2';
+is [map { $_->get('name') } @result], [qw/ CurvedMonitor3 HardDisk3 Monitor3 /], 'find subtypes depth 2';
 
 @result = $products->search({ price => { '>' => 200 } }, { order_by => 'name', subtype_depth => 3 })->all;
-is_deeply [map { $_->get('name') } @result], [qw/ CurvedMonitor3 FancyMonitor3 HardDisk3 Monitor3 /], 'find subtypes depth 3';
+is [map { $_->get('name') } @result], [qw/ CurvedMonitor3 FancyMonitor3 HardDisk3 Monitor3 /], 'find subtypes depth 3';
 
 
 # resultset->delete on subtype
@@ -120,3 +113,6 @@ my $cm = $eav->resultset('CurvedMonitor')->search->next;
 is $cm->get('contrast_ratio'), 10000, 'resultset->delete keeps subtype attrs';
 
 is $hd->get('tags')->count, 3, 'resultset->delete on subtype (rels)';
+
+
+done_testing;

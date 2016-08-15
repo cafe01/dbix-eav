@@ -1,18 +1,10 @@
 #!/usr/bin/perl -w
-
-use strict;
-use Test::More 'no_plan';
 use FindBin;
-use lib 'lib';
 use lib "$FindBin::Bin/lib";
-use Data::Dumper;
-use YAML;
-use Test::DBIx::EAV qw/ get_test_dbh read_file /;
-use DBIx::EAV;
-
+use Test::DBIx::EAV;
 
 my $dbh = get_test_dbh;
-my $eav_schema = Load(read_file("$FindBin::Bin/entities.yml"));
+my $eav_schema = read_yaml_file("$FindBin::Bin/entities.yml");
 
 
 # tenant 1
@@ -40,5 +32,8 @@ $eav->register_types($eav_schema);
 my $artist = $eav->type('Artist');
 ok $eav->type('Artist'), 'no tenant - type registered';
 
-is_deeply $dbh->selectrow_hashref('SELECT * from eav_entity_types WHERE id = '.$artist->id),
+is $dbh->selectrow_hashref('SELECT * from eav_entity_types WHERE id = '.$artist->id),
     { id => $artist->id, name => 'Artist' }, 'no tenant - type row';
+
+
+done_testing;

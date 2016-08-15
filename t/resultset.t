@@ -1,20 +1,12 @@
 #!/usr/bin/perl -w
-
-use strict;
-use Test::More 'no_plan';
-use Test::Exception;
 use FindBin;
-use lib 'lib';
 use lib "$FindBin::Bin/lib";
-use Data::Dumper;
-use YAML;
-use Test::DBIx::EAV qw/ get_test_dbh empty_database read_file /;
-use DBIx::EAV;
+use Test::DBIx::EAV;
 
 
 my $eav = DBIx::EAV->new( dbh => get_test_dbh(), tenant_id => 42 );
 $eav->schema->deploy( add_drop_table => $eav->schema->db_driver_name eq 'mysql');
-$eav->register_types(Load(read_file("$FindBin::Bin/entities.yml")));
+$eav->register_types(read_yaml_file("$FindBin::Bin/entities.yml"));
 
 
 test_common();
@@ -33,11 +25,12 @@ test_related();
 test_distinct();
 test_having();
 
+done_testing;
 
 sub test_common {
     my $rs = $eav->resultset('Artist');
 
-    isa_ok $rs, 'DBIx::EAV::ResultSet', 'eav->resultset';
+    isa_ok $rs, 'DBIx::EAV::ResultSet';
     is $rs->type->name, 'Artist', 'resultset type';
 }
 
@@ -46,7 +39,7 @@ sub test_insert {
     my $rs  = $eav->resultset('Artist');
     my $bob = $rs->insert({ name => 'Bob Marley' });
 
-    isa_ok $bob, 'DBIx::EAV::Entity', 'object returned by insert()';
+    isa_ok $bob, 'DBIx::EAV::Entity';
     is $bob->in_storage, 1, 'entity is in_storage';
 }
 
@@ -55,10 +48,10 @@ sub test_pupulate {
     my $rs = $eav->resultset('Artist');
 
     my @artists = $rs->populate([{ name => 'A1' }, { name => 'A2' }]);
-    is_deeply [map { $_->get('name') } @artists], [qw/ A1 A2 /], 'populate - list context';
+    is [map { $_->get('name') } @artists], [qw/ A1 A2 /], 'populate - list context';
 
     my $artists = $rs->populate([{ name => 'A3' }, { name => 'A4' }]);
-    is_deeply [map { $_->get('name') } @$artists], [qw/ A3 A4 /], 'populate - scalar context';
+    is [map { $_->get('name') } @$artists], [qw/ A3 A4 /], 'populate - scalar context';
 }
 
 
@@ -70,19 +63,19 @@ sub test_search {
     $rs->populate([{ name => 'A1' }, { name => 'A2' }]);
 
     cmp_ok $rs, 'ne', $rs->search({ name => 'A1' }), 'search in scalar context';
-    is_deeply [map { $_->get('name') } $rs->search ], [qw/ A1 A2 /], 'search in list context';
+    is [map { $_->get('name') } $rs->search ], [qw/ A1 A2 /], 'search in list context';
 
     my $cursor = $rs->cursor;
 
-    isa_ok $cursor, 'DBIx::EAV::Cursor', 'rs->cursor';
+    isa_ok $cursor, 'DBIx::EAV::Cursor';
 
     my $chained_rs = $rs->search({ name => 'foo' }, { limit => 10, group_by => ['g1', 'g2'], having => { g1 => 1 } })
                         ->search({ rating => 5 }, { limit => 20, group_by => ['g3'], having => { g3 => 1 } });
 
-    is_deeply $chained_rs->cursor->query,
+    is $chained_rs->cursor->query,
               [{ name => 'foo' }, { rating => 5 }], 'chained rs - merged query';
 
-    is_deeply $chained_rs->cursor->options,
+    is $chained_rs->cursor->options,
               {
                   limit => 20,
                   group_by => [qw/ g1 g2 g3 /],
@@ -93,7 +86,7 @@ sub test_search {
     my $a1 = $rs->find({ name => 'A1' });
     is $a1->get('name'), 'A1', 'find by query';
     is $rs->find($a1->id)->get('name'), 'A1', 'find by id';
-    dies_ok { $rs->find({ name => [qw/ A1 A2 /] }) } 'find dies on multiple results';
+    like dies { $rs->find({ name => [qw/ A1 A2 /] }) }, qr/returned more than one entity/;
 }
 
 
@@ -113,9 +106,9 @@ sub test_retrieval {
     is $rs->reset->next->get('name'), 'A1', 'reset';
 
     # all()
-    is_deeply [map { $_->get('name') } $rs->all ], [qw/ A1 A2 /], 'all in list context';
+    is [map { $_->get('name') } $rs->all ], [qw/ A1 A2 /], 'all in list context';
     my $all = $rs->all;
-    is_deeply [map { $_->get('name') } @$all ], [qw/ A1 A2 /], 'all in scalar context';
+    is [map { $_->get('name') } @$all ], [qw/ A1 A2 /], 'all in scalar context';
 
     # first()
     is $rs->first->get('name'), 'A1', 'first';
@@ -192,14 +185,14 @@ sub test_related {
 
     # CDs by artist
     my $cds = $eav->resultset('CD')->search({ artists => $a1 }, { order_by => { -desc => 'title' }});
-    is_deeply [map { $_->get('title') } $cds->all], [qw/ CD3 CD2 CD1 /], 'fetch cds by artist';
+    is [map { $_->get('title') } $cds->all], [qw/ CD3 CD2 CD1 /], 'fetch cds by artist';
 
     # CDs by multiple (or'ed) artists
     $cds = $eav->resultset('CD')->search({ artists => [$a1, $a2] }, { order_by => 'title, rating' });
-    is_deeply [map { $_->get('title') } $cds->all], [qw/ CD1 CD2 CD3 CD4 CD5 /], "fetch cds by multiple (or'ed) artist";
+    is [map { $_->get('title') } $cds->all], [qw/ CD1 CD2 CD3 CD4 CD5 /], "fetch cds by multiple (or'ed) artist";
 
     # cds via artists 'cds' rel
-    is_deeply [map { $_->get('title') } $a1->get('cds')->all], [qw/ CD1 CD2 CD3 /], 'cds via artists rel';
+    is [map { $_->get('title') } $a1->get('cds')->all], [qw/ CD1 CD2 CD3 /], 'cds via artists rel';
 
     # find by related attr
     my $cd4 = $eav->resultset('CD')->find({ title => 'CD4' });
@@ -225,7 +218,7 @@ sub test_distinct {
         { name => 'Peter' },
     ]);
 
-    is_deeply [map { $_->get('name') } $artists->search(undef, { select => [qw/ name id /], distinct => 1 })->all],
+    is [map { $_->get('name') } $artists->search(undef, { select => [qw/ name id /], distinct => 1 })->all],
               [qw/ Bob Peter /], 'find distinct';
 
     is $artists->search(undef, { select => [qw/ name id /], distinct => 1 })->count, 2, 'count distinct';
@@ -248,7 +241,7 @@ sub test_having {
         having => { count_cds => { '>' => 3 }},
     });
 
-    is_deeply [map { $_->get('name') } @result],
+    is [map { $_->get('name') } @result],
               [qw/ Peter /], 'having';
 
 }

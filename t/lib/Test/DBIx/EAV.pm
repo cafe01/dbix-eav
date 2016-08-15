@@ -5,8 +5,33 @@ use warnings;
 use DBI;
 use FindBin;
 use parent qw(Exporter);
+use Test2::Bundle::Extended;
+use Data::Dumper;
+use lib 'lib';
+use DBIx::EAV;
+use YAML;
 
-our @EXPORT_OK = qw/ get_test_dbh empty_database read_file /;
+our @EXPORT = (
+    @Test2::Bundle::Extended::EXPORT,
+    qw/ Dumper get_test_dbh empty_database read_file read_yaml_file /
+);
+
+our @EXPORT_OK = (
+    @Test2::Bundle::Extended::EXPORT_OK,
+    qw/  /
+);
+
+
+sub import {
+    my ($pkg) = @_;
+
+    # modern perl
+    $_->import for qw(strict warnings utf8);
+    feature->import(':5.10');
+
+    # our stuff, via Exporter::export_to_level
+    $pkg->export_to_level(1, @_);
+}
 
 
 sub empty_database {
@@ -36,6 +61,11 @@ sub read_file {
     open my $fh, '<', $filename or die "$!";
     return join '', <$fh>;
 }
+
+sub read_yaml_file {
+    Load(read_file(shift))
+}
+
 
 
 

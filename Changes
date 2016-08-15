@@ -7,6 +7,9 @@ Revision history for Perl extension DBIx-EAV
       - set via entity_namespaces/resultset_namespaces
       - can now define entities via custom classes instead of register_types()
 
+    [ TESTS ]
+    * migrated to Test2
+
 0.07 2016-07-26T22:36:26Z
 
     - improved schema deployment, now using a version table

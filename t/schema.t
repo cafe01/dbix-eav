@@ -1,15 +1,7 @@
 #!/usr/bin/perl -w
-
-use strict;
-use Test::More;
-use Test::Exception;
 use FindBin;
-use lib 'lib';
 use lib "$FindBin::Bin/lib";
-use Data::Dumper;
-use YAML;
-use Test::DBIx::EAV qw/ get_test_dbh read_file /;
-use DBIx::EAV;
+use Test::DBIx::EAV;
 
 
 my $dbh = get_test_dbh( no_deploy => 1 );
@@ -28,7 +20,7 @@ sub test_create_tables {
 
     my $schema = $eav->schema;
 
-    isa_ok $schema->translator, 'SQL::Translator', 'schema->translator';
+    isa_ok $schema->translator, 'SQL::Translator';
 
     like $schema->get_ddl, qr/CREATE TABLE/, 'get_dll()';
     like $schema->get_ddl('JSON'), qr/SQL::Translator::Producer::JSON/, 'get_dll("JSON")';
@@ -75,7 +67,7 @@ sub test_create_tables {
 
 sub test_register_types {
 
-    my $schema = Load(read_file("$FindBin::Bin/entities.yml"));
+    my $schema = read_yaml_file("$FindBin::Bin/entities.yml");
 
     is $eav->schema->has_data_type('int'), 1, 'has_data_type';
 
@@ -100,12 +92,12 @@ sub test_register_types {
     is $description_attr->{name}, 'description', 'description attr registered';
     is $description_attr->{data_type}, 'text', 'description attr data_type';
 
-    isa_ok $eav->_types->{Artist}, 'HASH', 'Artist entity schema';
-    isa_ok $eav->_types->{CD}, 'HASH', 'CD entity schema';
-    isa_ok $eav->_types->{Track}, 'HASH', 'Track entity schema';
+    ref_ok $eav->_types->{Artist}, 'HASH', 'Artist entity schema';
+    ref_ok $eav->_types->{CD}, 'HASH', 'CD entity schema';
+    ref_ok $eav->_types->{Track}, 'HASH', 'Track entity schema';
 
     # has_many
-    is_deeply $dbh->selectrow_hashref('SELECT is_has_one, is_has_many, is_many_to_many, left_entity_type_id, right_entity_type_id FROM eav_relationships WHERE name = "tracks"'),
+    is $dbh->selectrow_hashref('SELECT is_has_one, is_has_many, is_many_to_many, left_entity_type_id, right_entity_type_id FROM eav_relationships WHERE name = "tracks"'),
         {
             is_has_one => 0,
             is_has_many => 1,
@@ -116,7 +108,7 @@ sub test_register_types {
         'CD has_many Tracks';
 
     # many_to_many
-    is_deeply $dbh->selectrow_hashref('SELECT is_has_one, is_has_many, is_many_to_many, left_entity_type_id, right_entity_type_id FROM eav_relationships WHERE name = "cds"'),
+    is $dbh->selectrow_hashref('SELECT is_has_one, is_has_many, is_many_to_many, left_entity_type_id, right_entity_type_id FROM eav_relationships WHERE name = "cds"'),
         {
             is_has_one => 0,
             is_has_many => 0,
@@ -130,9 +122,9 @@ sub test_register_types {
 
 sub test_entity_type {
 
-    dies_ok { $eav->type('Unknown') } 'type() dies for invalid types';
+    like dies { $eav->type('Unknown') }, qr/EntityType 'Unknown' does not exist/;
     my $artist = $eav->type('Artist');
-    isa_ok $artist, 'DBIx::EAV::EntityType', 'entity';
+    isa_ok $artist, 'DBIx::EAV::EntityType';
 
     like $artist->id, qr/^\d$/, 'id';
     is $artist->name, 'Artist', 'name';

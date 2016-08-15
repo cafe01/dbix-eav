@@ -1,14 +1,7 @@
 #!/usr/bin/perl -w
-
-use strict;
-use Test::More 'no_plan';
-use Data::Dumper;
-use YAML;
 use FindBin;
-use lib 'lib';
 use lib "$FindBin::Bin/lib";
-use DBIx::EAV;
-use Test::DBIx::EAV qw/ get_test_dbh empty_database read_file /;
+use Test::DBIx::EAV;
 
 
 my $eav = DBIx::EAV->new(
@@ -18,7 +11,7 @@ my $eav = DBIx::EAV->new(
 );
 
 $eav->schema->deploy( add_drop_table => $eav->schema->db_driver_name eq 'mysql');
-$eav->register_types(Load(read_file("$FindBin::Bin/entities.yml")));
+$eav->register_types(read_yaml_file("$FindBin::Bin/entities.yml"));
 
 
 test_query();
@@ -26,6 +19,7 @@ test_next();
 test_reset();
 test_first();
 
+done_testing;
 
 sub test_query {
 
@@ -47,12 +41,12 @@ sub test_query {
 
     my $as_query = $cursor->as_query;
 
-    isa_ok $$as_query, 'ARRAY', 'as_query return ref to arrayref';
+    ref_ok $$as_query, 'ARRAY';
 
     my ($sql_query, $bind) = @{$$as_query};
 
-    isa_ok $cursor->_sth, 'DBI::st', '_sth';
-    isa_ok $bind, 'ARRAY', 'bind values array';
+    isa_ok $cursor->_sth, 'DBI::st';
+    ref_ok $bind, 'ARRAY';
     # diag $sql_query;
     ok index($sql_query, 'SELECT me.id, me.entity_type_id, me.is_deleted, me.is_active, me.is_published FROM eav_entities') != -1,
         'sql query: SELECT part';

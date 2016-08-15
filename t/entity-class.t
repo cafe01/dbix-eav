@@ -1,14 +1,8 @@
 #!/usr/bin/perl -w
 
-use strict;
-use Test2::Bundle::Extended;
 use FindBin;
-use lib 'lib';
 use lib "$FindBin::Bin/lib";
-use Data::Dumper;
-use DBIx::EAV;
-use YAML;
-use Test::DBIx::EAV qw/ get_test_dbh read_file /;
+use Test::DBIx::EAV;
 use DBIx::EAV::Entity;
 use My::Entity::Artist;
 
