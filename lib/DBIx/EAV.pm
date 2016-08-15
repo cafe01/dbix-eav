@@ -416,7 +416,8 @@ DBIx::EAV - Entity-Attribute-Value data modeling (aka 'open schema') for Perl
 =head1 DESCRIPTION
 
 An implementation of Entity-Attribute-Value data modeling with support for
-entity relationships and multi-tenancy. See L<DBIx::EAV::Manual>.
+entity relationships, inheritance, custom classes and multi-tenancy.
+See L<DBIx::EAV::Manual>.
 
 =head1 ALPHA STAGE
 
@@ -447,6 +448,30 @@ Existing L<DBI> database handle. See L</connect>.
 
 Hashref of options used to instantiate our L<DBIx::EAV::Schema>.
 See L<DBIx::EAV::Schema/"CONSTRUCTOR OPTIONS">.
+
+=item entity_namespaces
+
+Arrayref of namespaces to look for custom L<entity|DBIx::EAV::Entity> classes.
+
+    # mimic DBIx::Class
+    entity_namespaces => ['MyApp::Schema::Result']
+
+Class names are created by appending the entity type name to each namespace in
+the list. The first existing class is used.
+
+Custom entity classes are useful not only provide custom business logic, but
+also to define your entities, like DBIx::Class result classes.
+See L<DBIx::EAV::Entity/"CUSTOM CLASS">.
+
+=item resultset_namespaces
+
+Arrayref of namespaces to look for custom resultset classes.
+
+    # mimic DBIx::Class
+    resultset_namespaces => ['MyApp::Schema::ResultSet']
+
+Class names are created by appending the entity type name to each namespace in
+the list. The first existing class is used.
 
 =back
 

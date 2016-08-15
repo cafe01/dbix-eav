@@ -485,11 +485,111 @@ DBIx::EAV::Entity - Represents an entity record.
 
 This class can be used by itself or as base class for your entity objects.
 
+=head1 CUSTOM CLASS
+
+DBIx::EAV lets you define your entities via custom classes, which are subclasses
+of DBIx::EAV::Entity. Unlike DBIx::Class, the custom classes are not loaded
+upfront. They are lazy loaded whenever a call to L<DBIx::EAV/type> is made.
+Directly or indirectly (i.e. via other DBIx::EAV methods like L<"resultset()"|DBIx::EAV/resultset>).
+
+Custom classes are used not only define the entity attributes and relationships,
+but also to add define you application's business logic, via custom entity methods.
+
+Okay, an example. Lets mimic the namespaces used by DBIx::Class:
+
+    my $eav = DBIx::EAV->connect($dsn, $user, $pass, $attrs, {
+        entity_namespaces    => 'MyApp::Schema::Result',
+        resultset_namespaces => 'MyApp::Schema::ResultSet',
+    });
+
+Now lets create a 'User' entity class.
+
+    package MyApp::Schema::Result::User;
+    use Moo;
+    BEGIN { extends 'DBIx::EAV::Entity' }
+
+    __PACKAGE__->attribute('first_name');
+    __PACKAGE__->attribute('last_name');
+    __PACKAGE__->attribute('email');
+    __PACKAGE__->attribute('birth_date:datetime');
+    __PACKAGE__->attribute('is_verified:boolean:0');
+
+    # can also define relationships
+    #__PACKAGE__->has_one( ... );
+    #__PACKAGE__->has_many( ... );
+    #__PACKAGE__->many_to_many( ... );
+
+    # custom methods
+    sub full_name {
+        my $self = shift;
+        return join ' ', $self->get('first_name'), $self->get('last_name');
+    }
+
+    1;
+
+
+Done. You have just defined the C<User> entity type, and also a custom class for
+instances of the this type.
+
+    my $user = $eav->resultset('User')->create({
+        first_name => 'Carlos',
+        last_name  => 'Gratz'
+    });
+
+    print $user->full_name; # Carlos Gratz
+
+    # obviously, all other DBIx::EAV::Entity are also available :]
+
+As you could have noted in the first code snippet, its also possible to create
+custom resultset classes.
+
+    package MyApp::Schema::ResultSet::User;
+
+    use Moo;
+    extends 'DBIx::EAV::ResultSet';
+
+    sub verified_only {
+        my $self = shift;
+        $self->search({ is_verified => 1 });
+    }
+
+
+    1;
+
+Now a call to C<< $eav->resultset('User') >> returns an instance of
+C<MyApp::Schema::ResultSet::User>.
+
+    my $users_rs = $eav->resultset('User');
+
+    $users_rs->isa('MyApp::Schema::ResultSet::User'); # 1
+
+    my $verified_user = $users_rs->verified_only
+                                  ->find({ email => 'user@example.com'});
+
+
+
+=head1 CUSTOM CLASS INHERITANCE
+
+DBIx::EAV supports entity type inheritance. When working with custom classes all
+you need to do is set you custom base class by normal perl means. DBIx::EAV
+will inspect your class C<@ISA> and get the parent entity name.
+
+
+    package MyApp::DB::Result::UserSubclass;
+    BEGIN { extends 'MyApp::DB::Result::User' }
+
+    # define attributes, relationships and methods for 'UserSubclass'
+
+    1;
+
+For more information on how entity type inheritance works in DBIx::EAV, read
+L<DBIx::EAV::Manual::Inheritance>.
+
 =head1 METHODS
 
 =head2 in_storage
 
-Returns true if a database id is present. Really implemented as:
+Returns true if a database id is present.
 
     sub in_storage {
         my $self = shift;
