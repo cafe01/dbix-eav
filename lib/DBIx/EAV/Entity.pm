@@ -4,6 +4,7 @@ use Moo;
 use strictures 2;
 use Scalar::Util qw/ blessed /;
 use Data::Dumper;
+use Carp 'croak';
 
 has 'eav', is => 'ro', required => 1;
 has 'type', is => 'ro', required => 1, handles => [qw/ is_type /];
@@ -417,6 +418,54 @@ sub delete {
     $rv;
 }
 
+
+##               ##
+## Class Methods ##
+##               ##
+
+sub is_custom_class {
+    my $class = shift;
+    croak "is_custom_class() is a Class method." if ref $class;
+    $class ne __PACKAGE__;
+}
+
+sub type_definition {
+    my $class = shift;
+
+    croak "type_definition() is a Class method." if ref $class;
+    croak "type_definition() must be called on DBIx::EAV::Entity subclasses."
+        unless $class->is_custom_class;
+
+    no strict 'refs';
+    unless (defined *{"${class}::__TYPE_DEFINITION__"}) {
+
+        my %definition;
+        # detect parent entity
+        my $parent_class = ${"${class}::ISA"}[0];
+        ($definition{extends}) = $parent_class =~ /::(\w+)$/
+            if $parent_class ne __PACKAGE__;
+
+        *{"${class}::__TYPE_DEFINITION__"} = \%definition;
+    }
+
+
+    \%{"${class}::__TYPE_DEFINITION__"};
+}
+
+# install class methods for type definition
+foreach my $stuff (qw/ attribute has_many has_one many_to_many /) {
+    no strict 'refs';
+    *{$stuff} = sub {
+        my ($class, $spec) = @_;
+
+        croak "$stuff() is a Class method." if ref $class;
+        croak "$stuff() must be called on DBIx::EAV::Entity subclasses."
+            unless $class->is_custom_class;
+
+        my $key = $stuff eq 'attribute' ? 'attributes' : $stuff;
+        push @{ $class->type_definition->{$key} }, $spec;
+    };
+}
 
 
 

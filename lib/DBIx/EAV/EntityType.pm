@@ -58,7 +58,7 @@ sub parents {
     @parents;
 }
 
-sub is_type {
+sub is_type($) {
     my ($self, $type) = @_;
     return 1 if $self->name eq $type;
     foreach my $parent ($self->parents) {

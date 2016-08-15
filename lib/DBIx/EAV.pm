@@ -9,8 +9,10 @@ use DBIx::EAV::EntityType;
 use DBIx::EAV::Entity;
 use DBIx::EAV::ResultSet;
 use DBIx::EAV::Schema;
-use Carp qw/croak confess/;
+use Carp qw' croak confess ';
 use Scalar::Util 'blessed';
+use Class::Load qw' try_load_class ';
+use namespace::clean;
 
 our $VERSION = "0.07";
 
@@ -20,6 +22,8 @@ has 'dbh', is => 'ro', required => 1;
 # options
 has 'default_attribute_type', is => 'ro', default => 'varchar';
 has 'schema_config', is => 'ro', default => sub { {} };
+has 'entity_namespaces', is => 'ro', default => sub { [] };
+has 'resultset_namespaces', is => 'ro', default => sub { [] };
 
 # internal
 has 'schema', is => 'ro', lazy => 1, builder => 1, init_arg => undef, handles => [qw/ table dbh_do /];
@@ -70,7 +74,18 @@ sub type {
     return $self->_types->{$value}
         if exists $self->_types->{$value};
 
-    $self->_load_type('name', $value)
+    my $type = $self->_load_type('name', $value);
+
+    # not registered, try to find  a custom entity class and register it
+    if (!$type && (my $entity_class = $self->_resolve_entity_class($value))) {
+
+        ($type) = $self->register_types({$value => $entity_class->type_definition});
+    }
+
+    confess "EntityType '$value' does not exist."
+        unless $type;
+
+    $type;
 }
 
 sub type_by_id {
@@ -80,13 +95,14 @@ sub type_by_id {
         if exists $self->_types_by_id->{$value};
 
     $self->_load_type('id', $value)
+        or confess "EntityType 'id=$value' does not exist.";
 }
 
 sub _load_type {
     my ($self, $field, $value) = @_;
 
-    my $type_row = $self->table('entity_types')->select_one({ $field => $value })
-        or confess "EntityType '$field=$value' does not exist.";
+    my $type_row = $self->table('entity_types')->select_one({ $field => $value });
+    return unless $type_row;
 
     my $type = DBIx::EAV::EntityType->load({ %$type_row, core => $self});
     $self->_types->{$type->name} = $type;
@@ -94,10 +110,47 @@ sub _load_type {
     $type;
 }
 
+sub _resolve_entity_class {
+    my ($self, $name) = @_;
+
+    foreach my $ns (@{ $self->entity_namespaces }) {
+
+        my $entity_class = join '::', $ns, $name;
+        my ($is_loaded, $error) = try_load_class $entity_class;
+
+        return $entity_class if $is_loaded;
+
+        # rethrow compilation errors
+        die $error if $error =~ /^Can't locate .* in \@INC/;
+    }
+
+    return;
+}
+
+sub _resolve_resultset_class {
+    my ($self, $name) = @_;
+
+    foreach my $ns (@{ $self->resultset_namespaces }) {
+
+        my $class = join '::', $ns, $name;
+        my ($is_loaded, $error) = try_load_class $class;
+
+        return $class if $is_loaded;
+
+        # rethrow compilation errors
+        die $class;
+    }
+
+    return;
+}
+
 sub resultset {
     my ($self, $name) = @_;
 
-    DBIx::EAV::ResultSet->new({
+    my $rs_class = $self->_resolve_resultset_class($name)
+        || 'DBIx::EAV::ResultSet';
+
+    $rs_class->new({
         eav  => $self,
         type => $self->type($name),
     });
@@ -113,9 +166,11 @@ sub register_types {
     my @new_types = grep { not exists $self->_types->{$_} } keys %$schema;
 
     # create or update each entity type on database
+    my @registered_types;
     foreach my $name (@new_types) {
         next if exists $self->_types->{$name};
-        $self->_register_entity_type($name, $schema->{$name}, $schema);
+        push @registered_types,
+             $self->_register_entity_type($name, $schema->{$name}, $schema);
     }
 
     # register relationships
@@ -137,6 +192,8 @@ sub register_types {
             }
         }
     }
+
+    @registered_types;
 }
 
 

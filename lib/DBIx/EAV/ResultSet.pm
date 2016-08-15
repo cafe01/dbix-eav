@@ -23,7 +23,10 @@ has 'cursor',   is => 'rw',
                 clearer   => '_clear_cursor',
                 builder   => '_build_cursor';
 
-
+has 'entity_class', is => 'ro', init_arg => undef, lazy => 1, default => sub {
+    my $self = shift;
+    $self->eav->_resolve_entity_class($self->type->name) || 'DBIx::EAV::Entity';
+};
 
 sub _to_num { $_[0]->count }
 
@@ -44,7 +47,7 @@ sub _build_cursor {
 
 sub new_entity {
     my ($self, $data) = @_;
-    my $entity = DBIx::EAV::Entity->new( eav => $self->eav, type => $self->type );
+    my $entity = $self->entity_class->new( eav => $self->eav, type => $self->type );
     $entity->set($data) if ref $data eq 'HASH';
     $entity;
 }
@@ -56,7 +59,7 @@ sub inflate_entity {
     $type = $self->eav->type_by_id($data->{entity_type_id})
         if $data->{entity_type_id} && $data->{entity_type_id} != $type->id;
 
-    my $entity = DBIx::EAV::Entity->new( eav => $self->eav, type => $type, raw => $data );
+    my $entity = $self->entity_class->new( eav => $self->eav, type => $type, raw => $data );
     $entity->load_attributes;
     $entity;
 }
