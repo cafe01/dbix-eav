@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/cafe01/dbix-eav.svg?branch=master)](https://travis-ci.org/cafe01/dbix-eav)
+[![Build Status](https://travis-ci.org/cafe01/dbix-eav.svg?branch=master)](https://travis-ci.org/cafe01/dbix-eav) [![Coverage Status](https://img.shields.io/coveralls/cafe01/dbix-eav/master.svg?style=flat)](https://coveralls.io/r/cafe01/dbix-eav?branch=master)
 # NAME
 
 DBIx::EAV - Entity-Attribute-Value data modeling (aka 'open schema') for Perl
@@ -108,7 +108,8 @@ DBIx::EAV - Entity-Attribute-Value data modeling (aka 'open schema') for Perl
 # DESCRIPTION
 
 An implementation of Entity-Attribute-Value data modeling with support for
-entity relationships and multi-tenancy. See [DBIx::EAV::Manual](https://metacpan.org/pod/DBIx::EAV::Manual).
+entity relationships, inheritance, custom classes and multi-tenancy.
+See [DBIx::EAV::Manual](https://metacpan.org/pod/DBIx::EAV::Manual).
 
 # ALPHA STAGE
 
@@ -133,6 +134,30 @@ Valid `%params` keys:
 
     Hashref of options used to instantiate our [DBIx::EAV::Schema](https://metacpan.org/pod/DBIx::EAV::Schema).
     See ["CONSTRUCTOR OPTIONS" in DBIx::EAV::Schema](https://metacpan.org/pod/DBIx::EAV::Schema#CONSTRUCTOR-OPTIONS).
+
+- entity\_namespaces
+
+    Arrayref of namespaces to look for custom [entity](https://metacpan.org/pod/DBIx::EAV::Entity) classes.
+
+        # mimic DBIx::Class
+        entity_namespaces => ['MyApp::Schema::Result']
+
+    Class names are created by appending the entity type name to each namespace in
+    the list. The first existing class is used.
+
+    Custom entity classes are useful not only provide custom business logic, but
+    also to define your entities, like DBIx::Class result classes.
+    See ["CUSTOM CLASS" in DBIx::EAV::Entity](https://metacpan.org/pod/DBIx::EAV::Entity#CUSTOM-CLASS).
+
+- resultset\_namespaces
+
+    Arrayref of namespaces to look for custom resultset classes.
+
+        # mimic DBIx::Class
+        resultset_namespaces => ['MyApp::Schema::ResultSet']
+
+    Class names are created by appending the entity type name to each namespace in
+    the list. The first existing class is used.
 
 ## connect
 
