@@ -2,6 +2,11 @@ Revision history for Perl extension DBIx-EAV
 
 {{$NEXT}}
 
+0.09 2016-08-23T01:46:22Z
+
+    [ FIX ]
+    * added undeclared deps to cpanfile (GH #1 by andk)
+
 0.08 2016-08-15T19:01:30Z
 
     [ NEW ]
