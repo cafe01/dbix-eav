@@ -9,7 +9,7 @@ my $eav = DBIx::EAV->new( dbh => $dbh, tenant_id => 42 );
 
 
 test_create_tables();
-test_register_types();
+test_declare_entities();
 test_entity_type();
 test_load_types();
 
@@ -65,13 +65,26 @@ sub test_create_tables {
 }
 
 
-sub test_register_types {
+sub test_declare_entities {
 
     my $schema = read_yaml_file("$FindBin::Bin/entities.yml");
 
     is $eav->schema->has_data_type('int'), 1, 'has_data_type';
 
-    $eav->register_types($schema);
+    $eav->declare_entities($schema);
+
+    like $eav->_type_declarations->{Artist}{signature}, qr/^\w{32}$/, 'declaration signature';
+
+    is $dbh->selectrow_hashref('SELECT COUNT(*) as count from eav_entity_types')->{count}, 0, 'no types registered';
+    is $eav->_types, {}, 'no types installed';
+
+    # load types
+    my $artist_type = $eav->type('Artist');
+    is $dbh->selectrow_hashref('SELECT COUNT(*) as count from eav_entity_types')->{count}, 4, 'all types registered';
+
+    my $track_type = $eav->type('Track');
+    my $cd_type = $eav->type('CD');
+    my $lyric_type = $eav->type('Lyric');
 
     # entity types
     my $artist = $dbh->selectrow_hashref('SELECT * from eav_entity_types WHERE name = "Artist"');
@@ -141,6 +154,8 @@ sub test_entity_type {
 
 sub test_load_types {
 
-    $eav = DBIx::EAV->new( dbh => $dbh, tenant_id => 42 );
+    %{$eav->_types} = ();
+    %{$eav->_types_by_id} = ();
+
     test_entity_type();
 }

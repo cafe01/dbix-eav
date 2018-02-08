@@ -54,7 +54,7 @@ sub _build_sqlt_schema {
     my @schema = (
 
         entity_types => {
-            columns => ['id', $self->tenant_id ? 'tenant_id' : (), 'name:varchar:255'],
+            columns => ['id', $self->tenant_id ? 'tenant_id' : (), 'name:varchar:255', 'signature:char:32'],
             index   => [$self->tenant_id ? 'tenant_id' : ()],
             unique  => {
                 name => [$self->tenant_id ? 'tenant_id' : (),'name']
