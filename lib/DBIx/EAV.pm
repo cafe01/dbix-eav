@@ -40,7 +40,7 @@ around BUILDARGS => sub {
 
     my @schema_params = grep { exists $params->{$_} } qw/
         tenant_id         data_types   database_cascade_delete static_attributes
-        table_prefix      id_type      default_attribute_type
+        table_prefix      id_type      default_attribute_type  enable_multi_tenancy
     /;
 
     @{$schema_config}{@schema_params} = delete @{$params}{@schema_params};
