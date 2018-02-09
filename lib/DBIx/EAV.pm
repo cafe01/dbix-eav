@@ -156,12 +156,12 @@ sub _load_or_register_type {
         # declaration didnt change, load from db
         if ($declaration->{signature} eq $type_row->{signature}) {
 
-            printf STDERR "# loaded $type_row->{name} signature %s.\n", $type_row->{signature};
+            # printf STDERR "# loaded $type_row->{name} signature %s.\n", $type_row->{signature};
             $type = DBIx::EAV::EntityType->load({ %$type_row, core => $self});
         }
         # update definition
         else {
-            printf STDERR "# loaded $type_row->{name} signature changed from %s to %s.\n", $type_row->{signature}, $declaration->{signature};
+            # printf STDERR "# loaded $type_row->{name} signature changed from %s to %s.\n", $type_row->{signature}, $declaration->{signature};
             $self->_update_type_definition($type_row, $declaration->{schema});
             $type = DBIx::EAV::EntityType->new({ %$type_row, core => $self});
         }
@@ -346,8 +346,6 @@ sub _update_type_attributes {
 
         printf STDERR "[warn] entity '%s' is overriding inherited attribute '%s'", $type->{name}, $attr_spec->{name}
             if $inherited_attributes{$attr_spec->{name}};
-
-        printf STDERR "# defining attr %s.%s\n", $type->{name}, $attr_spec->{name};
 
         my $attr = $attributes->select_one({
             entity_type_id => $type->{id},
