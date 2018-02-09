@@ -285,10 +285,11 @@ sub deploy {
 
     # check we already installed this version
     my $version_table = $self->version_table;
-    return if $version_table->select_one({ version => $self->version });
+    return if $version_table->select_one({ version => $self->version }) && !$options{add_drop_table};
 
     # deploy ddl
     my $ddl = $self->get_ddl;
+    print STDERR $ddl if SQL_DEBUG;
     $self->dbh_do($_)
         for grep { /\w/ } split ';', $ddl;
 

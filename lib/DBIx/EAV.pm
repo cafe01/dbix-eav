@@ -95,6 +95,47 @@ sub type_by_id {
         or confess "EntityType 'id=$value' does not exist.";
 }
 
+sub declare_entities {
+    my ($self, $schema) = @_;
+    my $declarations = $self->_type_declarations;
+
+    local $Data::Dumper::Indent = 0;
+    local $Data::Dumper::Sortkeys = 1;
+    local $Data::Dumper::Maxdepth = 10;
+
+    for my $name (sort keys %$schema) {
+
+        # generate signature
+        my $entity_schema = $self->_normalize_entity_schema($name, $schema->{$name});
+        my $signature = md5_hex Dumper($entity_schema);
+
+        # not declared yet
+        if (!$declarations->{$name}) {
+            $declarations->{$name} = {
+                signature => $signature,
+                schema => $entity_schema
+            };
+            next;
+        }
+        else {
+
+            # same schema, do nothing
+            next if $declarations->{$name}{signature} eq $signature;
+
+            # its different, replace declaration and invalidate insalled type
+            printf STDERR "# %s declaration changed from %s to %s\n", $name, $declarations->{$name}{signature}, $signature;
+            $declarations->{$name} = {
+                signature => $signature,
+                schema => $entity_schema
+            };
+
+            my $type_id = $self->_types->{$name}->id;
+            delete $self->_types->{$name};
+            delete $self->_types_by_id->{$type_id};
+        }
+    }
+}
+
 sub _load_or_register_type {
     my ($self, $field, $value) = @_;
     my $declarations = $self->_type_declarations;
@@ -115,12 +156,13 @@ sub _load_or_register_type {
         # declaration didnt change, load from db
         if ($declaration->{signature} eq $type_row->{signature}) {
 
+            printf STDERR "# loaded $type_row->{name} signature %s.\n", $type_row->{signature};
             $type = DBIx::EAV::EntityType->load({ %$type_row, core => $self});
         }
         # update definition
         else {
-            printf STDERR "# $type_row->{name} signature changed from %s to %s\n.", $declaration->{signature}, $type_row->{signature};
-            $self->_update_type_definition($type_row, $declaration);
+            printf STDERR "# loaded $type_row->{name} signature changed from %s to %s.\n", $type_row->{signature}, $declaration->{signature};
+            $self->_update_type_definition($type_row, $declaration->{schema});
             $type = DBIx::EAV::EntityType->new({ %$type_row, core => $self});
         }
 
@@ -200,52 +242,8 @@ sub resultset {
     });
 }
 
-sub declare_entities {
-    my ($self, $schema) = @_;
-    my $declarations = $self->_type_declarations;
-
-    local $Data::Dumper::Indent = 0;
-    local $Data::Dumper::Sortkeys = 1;
-    local $Data::Dumper::Maxdepth = 10;
-    local $Data::Dumper::Maxdepth = 10;
-
-    for my $name (sort keys %$schema) {
-
-        # generate signature
-        my $signature = md5_hex Dumper($schema->{$name});
-
-        # not declared yet
-        if (!$declarations->{$name}) {
-            $declarations->{$name} = {
-                signature => $signature,
-                schema => $schema->{$name}
-            };
-            next;
-        }
-        else {
-
-            # same schema, do nothing
-            next if $declarations->{$name}{signature} eq $signature;
-
-            # its different, replace declaration and invalidate insalled type
-            $declarations->{$name} = {
-                signature => $signature,
-                schema => $schema->{$name}
-            };
-
-            my $type_id = $self->_types->{$name}->id;
-            delete $self->_types->{$name};
-            delete $self->_types_by_id->{$type_id};
-        }
-    }
-}
-
-
-
-
 sub _register_entity_type {
     my ($self, $name) = @_;
-    printf "# registering type '$name'\n";
 
     # error: undeclared type
     my $declaration = $self->_type_declarations->{$name}
@@ -269,6 +267,7 @@ sub _register_entity_type {
     $self->_types->{$name} =
         $self->_types_by_id->{$type->{id}} = DBIx::EAV::EntityType->new(%$type, core => $self);
 }
+
 
 sub _update_type_definition {
     my ($self, $type, $spec) = @_;
@@ -345,20 +344,10 @@ sub _update_type_attributes {
 
     foreach my $attr_spec (@{$spec->{attributes}}) {
 
-        # expand string to name/type
-        unless (ref $attr_spec) {
-            my ($name, $type) = split ':', $attr_spec;
-            $attr_spec = {
-                name => $name,
-                type => $type || $self->default_attribute_type
-            };
-        }
-
-        die sprintf("Error registering attribute '%s' for  entity '%s'. Can't use names of static attributes (real table columns).", $attr_spec->{name}, $type->{name})
-            if exists $static_attributes{$attr_spec->{name}};
-
         printf STDERR "[warn] entity '%s' is overriding inherited attribute '%s'", $type->{name}, $attr_spec->{name}
             if $inherited_attributes{$attr_spec->{name}};
+
+        printf STDERR "# defining attr %s.%s\n", $type->{name}, $attr_spec->{name};
 
         my $attr = $attributes->select_one({
             entity_type_id => $type->{id},
@@ -366,7 +355,7 @@ sub _update_type_attributes {
         });
 
         if (defined $attr) {
-            # update
+            # TODO update attribute definition
         }
         else {
             delete $attr_spec->{id}; # safety
@@ -390,19 +379,6 @@ sub _update_type_attributes {
 
 sub _register_type_relationship {
     my ($self, $type, $reltype, $params) = @_;
-
-    # scalar: entity
-    $params = { entity => $params } unless ref $params;
-
-    # array: name => Entity [, incoming_name ]
-    if (ref $params eq 'ARRAY') {
-
-        $params = {
-            name => $params->[0],
-            entity  => $params->[1],
-            incoming_name => $params->[2],
-        };
-    }
 
     die sprintf("Error: invalid %s relationship for entity '%s': missing 'entity' parameter.", $reltype, $type->{name})
         unless $params->{entity};
@@ -454,15 +430,90 @@ sub _register_type_relationship {
     $type->{relationships}->{$rel{name}} = \%rel;
 
     # install their side
-    die sprintf("Entity '%s' already has relationship '%s'.", $other_entity->name, $rel{incoming_name})
-        if $other_entity->has_relationship($rel{incoming_name});
-
     $other_entity->_relationships->{$rel{incoming_name}} = {
         %rel,
         is_right_entity => 1,
         name => $rel{incoming_name},
         incoming_name => $rel{name},
     };
+}
+
+sub _normalize_entity_schema {
+    my ($self, $entity_name, $schema) = @_;
+
+    # validate, normalize and copy data structures
+    my %normalized;
+
+    # scalar keys
+    for (qw/ extends /) {
+        $normalized{$_} = $schema->{$_}
+            if exists $schema->{$_};
+    }
+
+    # attributes
+    my %static_attributes = map { $_ => {name => $_, is_static => 1} } @{$self->table('entities')->columns};
+    foreach my $attr_spec (@{$schema->{attributes}}) {
+
+        # expand string to name/type
+        unless (ref $attr_spec) {
+            my ($name, $type) = split ':', $attr_spec;
+            $attr_spec = {
+                name => $name,
+                type => $type || $self->default_attribute_type
+            };
+        }
+
+        die sprintf("Error normalizing attribute '%s' for  entity '%s': can't use names of static attributes (real table columns).", $attr_spec->{name}, $entity_name)
+            if exists $static_attributes{$attr_spec->{name}};
+
+        push @{$normalized{attributes}}, { %$attr_spec };
+    }
+
+    # relationships
+    for my $reltype (qw/ has_one has_many many_to_many /) {
+
+        next unless $schema->{$reltype};
+
+        my $rels = $schema->{$reltype};
+        if (my $reftype = ref $rels) {
+            die "Error: invalid '$reltype' config for '$entity_name'" if $reftype ne 'ARRAY';
+        } else {
+            $rels = [$rels]
+        }
+
+        foreach my $params (@$rels)  {
+
+            my %rel;
+            my $reftype = ref $params;
+            # scalar: entity
+            if (!$reftype) {
+                %rel = ( entity => $params )
+            }
+            elsif ($reftype eq 'ARRAY') {
+
+                %rel = (
+                    name => $params->[0],
+                    entity  => $params->[1],
+                    incoming_name => $params->[2],
+                );
+            }
+            elsif ($reftype eq 'HAS') {
+                %rel = %$params;
+            }
+            else {
+                die "Error: invalid '$reltype' config for '$entity_name'.";
+            }
+
+            die sprintf("Error: invalid %s relationship for entity '%s': missing 'entity' parameter.", $reltype, $entity_name)
+                unless $rel{entity};
+
+            # push
+            push @{$normalized{$reltype}}, \%rel;
+        }
+
+    }
+
+    \%normalized;
 }
 
 1;

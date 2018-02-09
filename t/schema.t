@@ -73,8 +73,11 @@ sub test_declare_entities {
 
     $eav->declare_entities($schema);
 
-    like $eav->_type_declarations->{Artist}{signature}, qr/^\w{32}$/, 'declaration signature';
+    my $artist_signature = $eav->_type_declarations->{Artist}{signature};
+    like $artist_signature, qr/^\w{32}$/, 'declaration signature';
 
+
+    # no types registered yet
     is $dbh->selectrow_hashref('SELECT COUNT(*) as count from eav_entity_types')->{count}, 0, 'no types registered';
     is $eav->_types, {}, 'no types installed';
 
@@ -130,6 +133,23 @@ sub test_declare_entities {
             right_entity_type_id => $cd->{id},
         },
         'Artist many_to_many CDs';
+
+
+    # decalre again, signature must stay the same
+    $eav->declare_entities($schema);
+    is $artist_signature, $eav->_type_declarations->{Artist}{signature}, 'signature';
+
+    # modify type declaration
+    push @{$schema->{Artist}{attributes}}, 'is_active:bool::1';
+    is $dbh->selectrow_hashref("SELECT COUNT(*) AS count from eav_attributes WHERE entity_type_id = $artist->{id}")->{count}, 4;
+    $eav->declare_entities($schema);
+    my $updated_artist_type = $eav->type('Artist');
+    is $updated_artist_type->id, $artist_type->id, 'type id didnt change';
+    is $dbh->selectrow_hashref("SELECT COUNT(*) AS count from eav_attributes WHERE entity_type_id = $artist->{id}")->{count}, 5;
+    like $dbh->selectrow_hashref('SELECT * from eav_attributes WHERE name = "is_active" AND entity_type_id = '.$artist_type->id), {
+        data_type => 'bool',
+        entity_type_id => $artist_type->id
+    }, 'is_active definition';
 }
 
 
