@@ -15,7 +15,7 @@ use Scalar::Util 'blessed';
 use Class::Load qw' try_load_class ';
 use namespace::clean;
 
-our $VERSION = "0.10";
+our $VERSION = "0.11";
 
 # required
 has 'dbh', is => 'ro', required => 1;

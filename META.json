@@ -76,6 +76,6 @@
          "web" : "https://github.com/cafe01/dbix-eav"
       }
    },
-   "version" : "0.10",
+   "version" : "0.11",
    "x_serialization_backend" : "JSON::PP version 2.27300"
 }
