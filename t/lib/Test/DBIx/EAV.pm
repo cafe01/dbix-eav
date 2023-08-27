@@ -10,6 +10,7 @@ use Data::Dumper;
 use lib 'lib';
 use DBIx::EAV;
 use YAML;
+use feature ();
 
 our @EXPORT = (
     @Test2::Bundle::Extended::EXPORT,
